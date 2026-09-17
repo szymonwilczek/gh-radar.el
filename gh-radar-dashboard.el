@@ -19,6 +19,8 @@
 (declare-function evil-make-overriding-map "evil-core" (keymap &optional state copy))
 (declare-function gh-radar-process-fetch "gh-radar-process" (&optional callback))
 
+(declare-function gh-radar-settings "gh-radar-settings" ())
+
 (defcustom gh-radar-dashboard-max-width 100
   "Maximum character width for the radar dashboard layout."
   :type 'integer
@@ -296,7 +298,7 @@
                         'face 'gh-radar-dashboard-meta)
             "\n\n"
             "  "
-            (propertize "[d/x] Dismiss   [D/X] Dismiss all   [g] Refresh   [RET] Open   [i] Issues   [p] PRs   [n] Notifications   [?] Help   [q] Quit"
+            (propertize "[s] Settings   [d/x] Dismiss   [D/X] Dismiss all   [g] Refresh   [RET] Open   [i] Issues   [p] PRs   [n] Notifications   [?] Help   [q] Quit"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
@@ -423,6 +425,7 @@
         (insert "  k, <up>      Previous row\n\n")
         (insert (propertize "Actions\n" 'face 'gh-radar-dashboard-repo))
         (insert "  RET          Open repository page or unread item\n")
+        (insert "  s            Open settings\n")
         (insert "  d, x         Dismiss unread item\n")
         (insert "  D, X         Dismiss all unread items\n")
         (insert "  i            Open repository issues\n")
@@ -452,6 +455,7 @@
     (define-key map (kbd "<up>") #'gh-radar-dashboard-previous-row)
     (define-key map (kbd "RET") #'gh-radar-dashboard-open-at-point)
     (define-key map [return] #'gh-radar-dashboard-open-at-point)
+    (define-key map (kbd "s") #'gh-radar-settings)
     (define-key map (kbd "d") #'gh-radar-dashboard-dismiss)
     (define-key map (kbd "x") #'gh-radar-dashboard-dismiss)
     (define-key map (kbd "D") #'gh-radar-dashboard-dismiss-all)
@@ -498,6 +502,7 @@
       (kbd "<down>") #'gh-radar-dashboard-next-row
       (kbd "<up>") #'gh-radar-dashboard-previous-row
       (kbd "RET") #'gh-radar-dashboard-open-at-point
+      (kbd "s") #'gh-radar-settings
       (kbd "d") #'gh-radar-dashboard-dismiss
       (kbd "x") #'gh-radar-dashboard-dismiss
       (kbd "D") #'gh-radar-dashboard-dismiss-all
