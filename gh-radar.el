@@ -15,6 +15,7 @@
 ;;; Code:
 
 (require 'gh-radar-config)
+(require 'gh-radar-cache)
 (require 'gh-radar-query)
 (require 'gh-radar-state)
 (require 'gh-radar-process)
