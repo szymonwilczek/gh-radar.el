@@ -362,6 +362,7 @@
     (message "[gh-radar] Modeline count mode set to: %s"
              (if (eq new 'only-new) "ONLY NEW (+Delta)" "ALL (Total + New)"))))
 
+;;;###autoload
 (defalias 'gh-radar-toggle-count-display #'gh-radar-settings-toggle-count-display)
 
 ;;;###autoload
@@ -375,6 +376,7 @@
     (force-mode-line-update t)
     (message "[gh-radar] Modeline bell style %s" (if new "enabled" "disabled"))))
 
+;;;###autoload
 (defalias 'gh-radar-toggle-bell #'gh-radar-settings-toggle-bell)
 
 ;;;###autoload
@@ -395,6 +397,7 @@
                ('(inbox) "INBOX ONLY")
                (_ "DISABLED")))))
 
+;;;###autoload
 (defalias 'gh-radar-toggle-hide-zeros #'gh-radar-settings-toggle-hide-zeros)
 
 ;;;###autoload
