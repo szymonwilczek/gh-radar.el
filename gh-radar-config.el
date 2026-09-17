@@ -66,27 +66,48 @@ Defaults to t."
   :type 'boolean
   :group 'gh-radar)
 
-(defcustom gh-radar-modeline-icons '(inbox issues pr)
+(defcustom gh-radar-show-bell-icon t
+  "Whether to display the bell icon in aggregate mode-line mode.
+Defaults to t."
+  :type 'boolean
+  :group 'gh-radar)
+
+(defcustom gh-radar-modeline-icons '(inbox issues pr bell)
   "List of icon identifiers to display in the mode-line.
-Can contain `inbox', `issues', and `pr'.
-Defaults to \\='(inbox issues pr)."
+Can contain `inbox', `issues', `pr', and `bell'.
+Defaults to \\='(inbox issues pr bell)."
   :type '(set (const :tag "Inbox icon" inbox)
               (const :tag "Issues icon" issues)
-              (const :tag "Pull requests icon" pr))
+              (const :tag "Pull requests icon" pr)
+              (const :tag "Bell icon" bell))
   :group 'gh-radar)
+
+(defcustom gh-radar-bell-modeline nil
+  "Whether to display a single aggregate bell icon in the mode-line.
+When non-nil, replaces individual mode-line icons and counters with a single
+bell icon followed by the sum of all tracked notifications, issues, and PRs.
+Defaults to nil."
+  :type 'boolean
+  :group 'gh-radar)
+
+(defvaralias 'gh-radar-modeline-bell 'gh-radar-bell-modeline)
 
 (defcustom gh-radar-hide-zero-counts nil
   "Whether to hide mode-line segments when their count is zero.
-When t, hide any segment (inbox, issues, pr) whose count is 0.
-When a list of symbols (e.g. `(inbox)', `(issues)', `(pr)'), hide only
-those specific segments when their count is 0.
-Defaults to nil (show segments even with zero count)."
+When t, hide any segment (inbox, issues, pr, bell) whose count is 0.
+When a list of symbols (e.g. `(inbox)', `(issues)', `(pr)', `(bell)'),
+hide only those specific segments when their count is 0.
+When nil, individual segments with zero counts are shown, but in bell mode
+(`gh-radar-bell-modeline') a total count of zero is hidden by default.
+To force displaying zero in bell mode, set to `never'."
   :type '(choice (const :tag "Never hide zero counts" nil)
                  (const :tag "Hide all zero counts" t)
+                 (const :tag "Never hide zero counts even in bell mode" never)
                  (set :tag "Hide specific zero counts"
                       (const :tag "Inbox" inbox)
                       (const :tag "Issues" issues)
-                      (const :tag "Pull requests" pr)))
+                      (const :tag "Pull requests" pr)
+                      (const :tag "Bell (aggregate)" bell)))
   :group 'gh-radar)
 
 (defcustom gh-radar-track-notifications t
