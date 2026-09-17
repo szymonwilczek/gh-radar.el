@@ -1,4 +1,4 @@
-#+TITLE: gh-radal.el
+#+TITLE: gh-radar.el
 #+AUTHOR: Szymon Wilczek
 
 Tracks open issue and pull request counts for specified GitHub repositories using the =gh= CLI and GraphQL.
@@ -6,35 +6,35 @@ Tracks open issue and pull request counts for specified GitHub repositories usin
 * Installation
 
 #+begin_src elisp
-(use-package gh-radal
-  :load-path "~/Dokumenty/GitHub/gh-radal.el"
+(use-package gh-radar
+  :load-path "~/Documents/GitHub/gh-radar.el"
   :config
-  (setq gh-radal-repos
+  (setq gh-radar-repos
         '(("szymonwilczek/dotfiles" "issues" "pr")
           ("szymonwilczek/bufferline.el" "issues")
-          ("szymonwilczek/gh-radal.el" "pr")))
-  (setq gh-radal-interval 600)
-  (gh-radal-mode 1))
+          ("szymonwilczek/gh-radar.el" "pr")))
+  (setq gh-radar-interval 600)
+  (gh-radar-mode 1))
 #+end_src
 
 * Configuration
 
-- =gh-radal-repos=: List of repositories and targets: =("owner/repo" "issues" "pr")=, =("owner/repo" "issues")=, or =("owner/repo" "pr")=.
-- =gh-radal-interval=: Background polling frequency in seconds (default: 600).
-- =gh-radal-gh-executable=: Path to =gh= binary (default: ="gh"=).
-- =gh-radal-show-prefix=: Display GitHub prefix icon before counters (default: =nil=).
-- =gh-radal-notify-on-new=: Echo notification on count increments (default: =t=).
+- =gh-radar-repos=: List of repositories and targets: =("owner/repo" "issues" "pr")=, =("owner/repo" "issues")=, or =("owner/repo" "pr")=.
+- =gh-radar-interval=: Background polling frequency in seconds (default: 600).
+- =gh-radar-gh-executable=: Path to =gh= binary (default: ="gh"=).
+- =gh-radar-show-prefix=: Display GitHub prefix icon before counters (default: =nil=).
+- =gh-radar-notify-on-new=: Echo notification on count increments (default: =t=).
 
 * Mode-line
 
 #+begin_src elisp
-(add-to-list 'mode-line-format '(:eval (gh-radal-modeline-format)) t)
+(add-to-list 'mode-line-format '(:eval (gh-radar-modeline-format)) t)
 #+end_src
 
 * Commands
 
-- =gh-radal-refresh=: Trigger asynchronous API query.
-- =gh-radal-browse=: Open repository issues or pull requests in browser.
+- =gh-radar-refresh=: Trigger asynchronous API query.
+- =gh-radar-browse=: Open repository issues or pull requests in browser.
 
 * License
 
