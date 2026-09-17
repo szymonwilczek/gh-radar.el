@@ -1,0 +1,40 @@
+#+TITLE: gh-radal.el
+#+AUTHOR: Szymon Wilczek
+
+Tracks open issue and pull request counts for specified GitHub repositories using the =gh= CLI and GraphQL.
+
+* Installation
+
+#+begin_src elisp
+(use-package gh-radal
+  :load-path "~/Dokumenty/GitHub/gh-radal.el"
+  :config
+  (setq gh-radal-repos
+        '(("szymonwilczek/dotfiles" "issues" "pr")
+          ("szymonwilczek/bufferline.el" "issues")
+          ("szymonwilczek/gh-radal.el" "pr")))
+  (setq gh-radal-interval 600)
+  (gh-radal-mode 1))
+#+end_src
+
+* Configuration
+
+- =gh-radal-repos=: List of repositories and targets: =("owner/repo" "issues" "pr")=, =("owner/repo" "issues")=, or =("owner/repo" "pr")=.
+- =gh-radal-interval=: Background polling frequency in seconds (default: 600).
+- =gh-radal-gh-executable=: Path to =gh= binary (default: ="gh"=).
+- =gh-radal-notify-on-new=: Echo notification on count increments (default: =t=).
+
+* Mode-line
+
+#+begin_src elisp
+(add-to-list 'mode-line-format '(:eval (gh-radal-modeline-format)) t)
+#+end_src
+
+* Commands
+
+- =gh-radal-refresh=: Trigger asynchronous API query.
+- =gh-radal-browse=: Open repository issues or pull requests in browser.
+
+* License
+
+GPL-3.0-or-later
