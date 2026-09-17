@@ -48,5 +48,29 @@
     (gh-radal-stop-timer)
     (gh-radal-state-clear)))
 
+;;;###autoload
+(defun gh-radal-refresh ()
+  "Manually trigger an asynchronous GitHub radar refresh."
+  (interactive)
+  (message "[gh-radal] Refreshing monitored repositories...")
+  (gh-radal-process-fetch
+   (lambda (_data)
+     (message "[gh-radal] Refresh complete."))))
+
+;;;###autoload
+(defun gh-radal-browse ()
+  "Select a monitored repository and open its issues or PRs in browser."
+  (interactive)
+  (unless gh-radal-repos
+    (user-error "No repositories configured in `gh-radal-repos`"))
+  (let* ((repo-names (mapcar #'car gh-radal-repos))
+         (repo (completing-read "Open in browser: " repo-names nil t))
+         (target (completing-read (format "Open for %s: " repo) '("issues" "pulls" "repo") nil t "issues"))
+         (url (cond
+               ((string= target "issues") (format "https://github.com/%s/issues" repo))
+               ((string= target "pulls") (format "https://github.com/%s/pulls" repo))
+               (t (format "https://github.com/%s" repo)))))
+    (browse-url url)))
+
 (provide 'gh-radal)
 ;;; gh-radal.el ends here
