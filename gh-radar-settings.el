@@ -93,11 +93,11 @@
                         'face 'gh-radar-dashboard-meta)
             "\n\n"
             "  "
-            (propertize "[a] Add repo   [d] Delete repo   [c] Display mode"
+            (propertize "[a] Add repo          [d] Delete repo     [c] Display mode"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
-            (propertize "[i] Toggle Issues   [p] Toggle PRs   [n] Toggle Notifications"
+            (propertize "[i] Toggle Issues     [p] Toggle PRs      [n] Toggle Notifications"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
