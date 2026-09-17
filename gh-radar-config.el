@@ -48,6 +48,33 @@ Defaults to nil."
   :type 'boolean
   :group 'gh-radar)
 
+(defcustom gh-radar-show-inbox-icon t
+  "Whether to display the inbox icon in the mode-line.
+Defaults to t."
+  :type 'boolean
+  :group 'gh-radar)
+
+(defcustom gh-radar-show-issue-icon t
+  "Whether to display the issues icon in the mode-line.
+Defaults to t."
+  :type 'boolean
+  :group 'gh-radar)
+
+(defcustom gh-radar-show-pr-icon t
+  "Whether to display the pull requests icon in the mode-line.
+Defaults to t."
+  :type 'boolean
+  :group 'gh-radar)
+
+(defcustom gh-radar-modeline-icons '(inbox issues pr)
+  "List of icon identifiers to display in the mode-line.
+Can contain `inbox', `issues', and `pr'.
+Defaults to \\='(inbox issues pr)."
+  :type '(set (const :tag "Inbox icon" inbox)
+              (const :tag "Issues icon" issues)
+              (const :tag "Pull requests icon" pr))
+  :group 'gh-radar)
+
 (defcustom gh-radar-track-notifications t
   "Whether to track unread notifications from GitHub inbox.
 Defaults to t."
