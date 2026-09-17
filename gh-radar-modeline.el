@@ -10,12 +10,12 @@
 ;;; Code:
 
 (require 'gh-radar-config)
+(require 'gh-radar-cache)
 (require 'gh-radar-state)
 
 (declare-function nerd-icons-octicon "nerd-icons")
 (declare-function gh-radar-refresh "gh-radar")
 (declare-function gh-radar-dashboard "gh-radar-dashboard")
-(declare-function gh-radar-cache-get-repos "gh-radar-cache")
 
 (defun gh-radar-modeline--icon (name fallback)
   "Resolve nerd-icon NAME or return FALLBACK string."
