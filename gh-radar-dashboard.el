@@ -11,6 +11,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'parse-time)
 (require 'gh-radar-config)
 (require 'gh-radar-state)
 
@@ -48,6 +49,21 @@
     (((background light)) :background "#eef1f5" :extend t)
     (t :inherit highlight :extend t))
   "Face used to highlight the repository row at point."
+  :group 'gh-radar)
+
+(defface gh-radar-dashboard-unread-bullet
+  '((t :inherit warning :weight bold))
+  "Face for bullets preceding unread items in the dashboard."
+  :group 'gh-radar)
+
+(defface gh-radar-dashboard-unread-title
+  '((t :inherit default :weight bold))
+  "Face for unread item titles in the dashboard."
+  :group 'gh-radar)
+
+(defface gh-radar-dashboard-section-header
+  '((t :height 1.1 :weight bold :inherit font-lock-keyword-face))
+  "Face for section headers in the dashboard."
   :group 'gh-radar)
 
 (defvar-local gh-radar-dashboard--rows nil
@@ -154,15 +170,106 @@
     (user-error "No item at point")))
 
 (defun gh-radar-dashboard-open-at-point ()
-  "Open repository page or inbox at point in web browser."
+  "Open repository page, unread item, or inbox at point in web browser."
   (interactive)
   (if-let* ((item (gh-radar-dashboard-current-repo)))
-      (if (plist-get item :inbox)
-          (gh-radar-dashboard-open-notifications)
+      (cond
+       ((plist-get item :unread)
+        (let ((url (plist-get item :url))
+              (repo (plist-get item :repo))
+              (type (plist-get item :type))
+              (num (plist-get item :number)))
+          (when url
+            (browse-url url)
+            (gh-radar-state-dismiss-item repo type num)
+            (gh-radar-dashboard-render))))
+       ((plist-get item :inbox)
+        (gh-radar-dashboard-open-notifications))
+       (t
         (let ((repo (or (plist-get item :repo)
                         (format "%s/%s" (plist-get item :owner) (plist-get item :name)))))
-          (browse-url (format "https://github.com/%s" repo))))
+          (browse-url (format "https://github.com/%s" repo)))))
     (user-error "No item at point")))
+
+(defun gh-radar-dashboard-dismiss ()
+  "Dismiss the unread item or all unread items for repository at point."
+  (interactive)
+  (if-let* ((item (gh-radar-dashboard-current-repo)))
+      (cond
+       ((plist-get item :unread)
+        (let ((repo (plist-get item :repo))
+              (type (plist-get item :type))
+              (num (plist-get item :number)))
+          (gh-radar-state-dismiss-item repo type num)
+          (gh-radar-dashboard-render)
+          (message "[gh-radar] Dismissed %s #%d in %s"
+                   (if (eq type :pr) "PR" "issue") num repo)))
+       ((plist-get item :repo)
+        (let ((repo (plist-get item :repo)))
+          (gh-radar-state-dismiss-repo repo)
+          (gh-radar-dashboard-render)
+          (message "[gh-radar] Dismissed unread items for %s" repo)))
+       (t
+        (user-error "Nothing to dismiss at point")))
+    (user-error "No item at point")))
+
+(defun gh-radar-dashboard-dismiss-all ()
+  "Dismiss all unread activity across all repositories."
+  (interactive)
+  (gh-radar-state-dismiss-all)
+  (gh-radar-dashboard-render)
+  (message "[gh-radar] Dismissed all unread notifications"))
+
+(defun gh-radar-dashboard--insert-unread-section ()
+  "Insert the unread activity section if any unread items exist."
+  (let ((unread (gh-radar-state-unread-items))
+        (width (gh-radar-dashboard-width)))
+    (when unread
+      (insert "  "
+              (propertize (format "New Activity (%d)" (length unread))
+                          'face 'gh-radar-dashboard-section-header)
+              "  "
+              (propertize "· [d] dismiss item · [D] dismiss all"
+                          'face 'gh-radar-dashboard-meta)
+              "\n"
+              "  "
+              (propertize (make-string width ?─) 'face 'gh-radar-dashboard-separator)
+              "\n\n")
+      (dolist (item unread)
+        (let* ((repo (plist-get item :repo))
+               (type (plist-get item :type))
+               (num (plist-get item :number))
+               (title (plist-get item :title))
+               (author (plist-get item :author))
+               (time (plist-get item :created-at))
+               (type-label (if (eq type :pr) "PR" "issue"))
+               (type-face (if (eq type :pr) 'gh-radar-pr-face 'gh-radar-issue-face))
+               (type-icon (if (eq type :pr)
+                              (gh-radar-dashboard--icon "nf-oct-git_pull_request" "PR" type-face)
+                            (gh-radar-dashboard--icon "nf-oct-issue_opened" "#" type-face)))
+               (bullet (propertize "●" 'face 'gh-radar-dashboard-unread-bullet))
+               (data (append (list :unread t) item))
+               (beg (point)))
+          (insert "  " bullet "  "
+                  type-icon " "
+                  (propertize (format "#%d" num) 'face type-face) "  "
+                  (propertize (or title "(no title)") 'face 'gh-radar-dashboard-unread-title)
+                  "  "
+                  (propertize (format "(%s)" type-label) 'face 'gh-radar-dashboard-meta)
+                  "\n")
+          (let ((rel-time (when time
+                            (ignore-errors
+                              (gh-radar-dashboard--time-ago (parse-iso8601-time-string time))))))
+            (insert "       "
+                    (propertize (format "in %s by @%s%s"
+                                        repo
+                                        (or author "ghost")
+                                        (if rel-time (format " · %s" rel-time) ""))
+                                'face 'gh-radar-dashboard-meta)
+                    "\n\n"))
+          (let ((end (point)))
+            (put-text-property beg end 'gh-radar-item data)
+            (push (list beg end data) gh-radar-dashboard--rows)))))))
 
 (defun gh-radar-dashboard--insert-header ()
   "Insert the dashboard banner, statistics, and rule."
@@ -189,7 +296,7 @@
                         'face 'gh-radar-dashboard-meta)
             "\n\n"
             "  "
-            (propertize "[g] Refresh   [RET] Open   [i] Issues   [p] PRs   [n] Notifications   [?] Help   [q] Quit"
+            (propertize "[d/x] Dismiss   [D/X] Dismiss all   [g] Refresh   [RET] Open   [i] Issues   [p] PRs   [n] Notifications   [?] Help   [q] Quit"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
@@ -265,11 +372,19 @@
     (erase-buffer)
     (gh-radar-dashboard--insert-header)
     (gh-radar-dashboard--insert-inbox)
+    (gh-radar-dashboard--insert-unread-section)
     (if (null gh-radar-state-data)
         (unless gh-radar-track-notifications
           (insert "  " (propertize "No repository data available. Press 'g' to refresh."
                                    'face 'gh-radar-dashboard-meta)
                   "\n"))
+      (when (gh-radar-state-unread-items)
+        (insert "  "
+                (propertize "Tracked Repositories" 'face 'gh-radar-dashboard-section-header)
+                "\n"
+                "  "
+                (propertize (make-string (gh-radar-dashboard-width) ?─) 'face 'gh-radar-dashboard-separator)
+                "\n\n"))
       (dolist (item gh-radar-state-data)
         (gh-radar-dashboard--insert-row item)))
     (setq gh-radar-dashboard--rows (nreverse gh-radar-dashboard--rows))
@@ -307,7 +422,9 @@
         (insert "  j, <down>    Next row\n")
         (insert "  k, <up>      Previous row\n\n")
         (insert (propertize "Actions\n" 'face 'gh-radar-dashboard-repo))
-        (insert "  RET          Open repository page\n")
+        (insert "  RET          Open repository page or unread item\n")
+        (insert "  d, x         Dismiss unread item\n")
+        (insert "  D, X         Dismiss all unread items\n")
         (insert "  i            Open repository issues\n")
         (insert "  p, P         Open repository pull requests\n")
         (insert "  n, N         Open GitHub notifications\n")
@@ -335,6 +452,10 @@
     (define-key map (kbd "<up>") #'gh-radar-dashboard-previous-row)
     (define-key map (kbd "RET") #'gh-radar-dashboard-open-at-point)
     (define-key map [return] #'gh-radar-dashboard-open-at-point)
+    (define-key map (kbd "d") #'gh-radar-dashboard-dismiss)
+    (define-key map (kbd "x") #'gh-radar-dashboard-dismiss)
+    (define-key map (kbd "D") #'gh-radar-dashboard-dismiss-all)
+    (define-key map (kbd "X") #'gh-radar-dashboard-dismiss-all)
     (define-key map (kbd "i") #'gh-radar-dashboard-open-issues)
     (define-key map (kbd "p") #'gh-radar-dashboard-open-pulls)
     (define-key map (kbd "P") #'gh-radar-dashboard-open-pulls)
@@ -377,6 +498,10 @@
       (kbd "<down>") #'gh-radar-dashboard-next-row
       (kbd "<up>") #'gh-radar-dashboard-previous-row
       (kbd "RET") #'gh-radar-dashboard-open-at-point
+      (kbd "d") #'gh-radar-dashboard-dismiss
+      (kbd "x") #'gh-radar-dashboard-dismiss
+      (kbd "D") #'gh-radar-dashboard-dismiss-all
+      (kbd "X") #'gh-radar-dashboard-dismiss-all
       (kbd "i") #'gh-radar-dashboard-open-issues
       (kbd "p") #'gh-radar-dashboard-open-pulls
       (kbd "P") #'gh-radar-dashboard-open-pulls
