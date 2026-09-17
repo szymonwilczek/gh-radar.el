@@ -83,10 +83,7 @@
 
 (defun gh-radar-dashboard--icon (name fallback &optional face)
   "Return nerd-icon NAME or FALLBACK propertized with FACE."
-  (let ((glyph (if (and (fboundp 'nerd-icons-octicon) (display-graphic-p))
-                   (or (ignore-errors (nerd-icons-octicon name)) fallback)
-                 fallback)))
-    (if face (propertize glyph 'face face 'font-lock-face face) glyph)))
+  (gh-radar-resolve-icon name fallback face))
 
 (defun gh-radar-dashboard--time-ago (time)
   "Format internal TIME into a human-readable relative time string."
@@ -246,9 +243,7 @@
                (time (plist-get item :created-at))
                (type-label (if (eq type :pr) "PR" "issue"))
                (type-face (if (eq type :pr) 'gh-radar-pr-face 'gh-radar-issue-face))
-               (type-icon (if (eq type :pr)
-                              (gh-radar-dashboard--icon "nf-oct-git_pull_request" "PR" type-face)
-                            (gh-radar-dashboard--icon "nf-oct-issue_opened" "#" type-face)))
+               (type-icon (gh-radar-icon (if (eq type :pr) :pr :issues) type-face))
                (bullet (propertize "●" 'face 'gh-radar-dashboard-unread-bullet))
                (data (append (list :unread t) item))
                (beg (point)))
@@ -341,9 +336,9 @@
          (new-prs (or (plist-get data :new-pr) 0))
          (time (plist-get data :timestamp))
          (only-new (memq gh-radar-count-display '(new only-new)))
-         (repo-icon (gh-radar-dashboard--icon "nf-oct-repo" "GH" 'gh-radar-dashboard-repo))
-         (issue-icon (gh-radar-dashboard--icon "nf-oct-issue_opened" "#" 'gh-radar-issue-face))
-         (pr-icon (gh-radar-dashboard--icon "nf-oct-git_pull_request" "PR" 'gh-radar-pr-face))
+         (repo-icon (gh-radar-icon :repo 'gh-radar-dashboard-repo))
+         (issue-icon (gh-radar-icon :issues 'gh-radar-issue-face))
+         (pr-icon (gh-radar-icon :pr 'gh-radar-pr-face))
          (beg (point)))
     (insert "  " repo-icon "  " (propertize repo 'face 'gh-radar-dashboard-repo) "\n")
     (if only-new
@@ -385,7 +380,7 @@
     (let* ((cnt (if gh-radar-state-notifications (or (plist-get gh-radar-state-notifications :count) 0) 0))
            (new-cnt (if gh-radar-state-notifications (or (plist-get gh-radar-state-notifications :new) 0) 0))
            (time (when gh-radar-state-notifications (plist-get gh-radar-state-notifications :timestamp)))
-           (inbox-icon (gh-radar-dashboard--icon "nf-oct-inbox" "@" 'gh-radar-inbox-face))
+           (inbox-icon (gh-radar-icon :inbox 'gh-radar-inbox-face))
            (data (list :inbox t :count cnt :new new-cnt :timestamp time))
            (beg (point)))
       (insert "  " inbox-icon "  " (propertize "Inbox (Notifications)" 'face 'gh-radar-dashboard-repo) "\n")
