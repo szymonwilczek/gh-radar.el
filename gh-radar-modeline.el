@@ -70,21 +70,18 @@ Returns a plist `(:issues I :prs P :new-issues NI :new-prs NP)'."
 (defun gh-radar-modeline--show-icon-p (type)
   "Check if icon for TYPE should be displayed.
 TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
-  (and (if (boundp 'gh-radar-modeline-icons)
-           (let ((sym (pcase type
-                        (:inbox 'inbox)
-                        (:issue 'issues)
-                        (:pr 'pr)
-                        (:bell 'bell))))
-             (or (memq sym gh-radar-modeline-icons)
-                 (memq type gh-radar-modeline-icons)))
-         t)
-       (pcase type
-         (:inbox gh-radar-show-inbox-icon)
-         (:issue gh-radar-show-issue-icon)
-         (:pr gh-radar-show-pr-icon)
-         (:bell gh-radar-show-bell-icon)
-         (_ t))))
+  (if (eq type :bell)
+      gh-radar-show-bell-icon
+    (and (if (boundp 'gh-radar-modeline-icons)
+             (let ((sym (pcase type (:inbox 'inbox) (:issue 'issues) (:pr 'pr))))
+               (or (memq sym gh-radar-modeline-icons)
+                   (memq type gh-radar-modeline-icons)))
+           t)
+         (pcase type
+           (:inbox gh-radar-show-inbox-icon)
+           (:issue gh-radar-show-issue-icon)
+           (:pr gh-radar-show-pr-icon)
+           (_ t)))))
 
 (defun gh-radar-modeline--hide-zero-p (type count)
   "Return non-nil if segment TYPE with COUNT should be hidden.
