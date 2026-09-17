@@ -5,16 +5,20 @@
 ;; License: GPL-3.0-or-later
 
 ;;; Commentary:
-;; In-memory state cache, delta calculation, and subscriber hooks.
+;; In-memory state cache, persistent unread queue tracking, and subscriber hooks.
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'gh-radar-config)
+(require 'gh-radar-cache)
 
 (defvar gh-radar-state-data nil
   "Current state alist mapping repository names to their radar metrics.
 Each item is of the form:
   (REPO . (:owner STR :name STR :issues INT :pr INT
+           :last-seen-issue INT :last-seen-pr INT
+           :unread-issues LIST :unread-prs LIST
            :new-issues INT :new-pr INT :timestamp TIME))")
 
 (defvar gh-radar-state-notifications nil
@@ -30,44 +34,197 @@ Each function is called with the full `gh-radar-state-data` alist.")
   "Retrieve cached metrics plist for REPO (\"owner/name\")."
   (cdr (assoc repo gh-radar-state-data)))
 
+(defun gh-radar-state-load-cache ()
+  "Initialize `gh-radar-state-data` from disk cache if available."
+  (when-let* ((cached (gh-radar-cache-load)))
+    (let ((records nil))
+      (dolist (item cached)
+        (let* ((repo (car item))
+               (data (cdr item))
+               (parts (split-string repo "/"))
+               (owner (car parts))
+               (name (cadr parts))
+               (ui (plist-get data :unread-issues))
+               (up (plist-get data :unread-prs)))
+          (push (cons repo
+                      (list :repo repo
+                            :owner owner
+                            :name name
+                            :issues (or (plist-get data :issues) 0)
+                            :pr (or (plist-get data :pr) 0)
+                            :last-seen-issue (plist-get data :last-seen-issue)
+                            :last-seen-pr (plist-get data :last-seen-pr)
+                            :unread-issues ui
+                            :unread-prs up
+                            :new-issues (length ui)
+                            :new-pr (length up)
+                            :timestamp nil))
+                records)))
+      (setq gh-radar-state-data (nreverse records)))))
+
 (defun gh-radar-state-update (new-records)
-  "Update `gh-radar-state-data` with NEW-RECORDS and calculate deltas.
-NEW-RECORDS is a list of plists containing :repo, :owner, :name, :issues, :pr."
+  "Update `gh-radar-state-data` with NEW-RECORDS and update unread queue."
   (let ((updated-alist nil)
-        (total-new-issues 0)
-        (total-new-prs 0))
+        (newly-detected-issues 0)
+        (newly-detected-prs 0))
     (dolist (item new-records)
       (let* ((repo (plist-get item :repo))
-             (old-item (gh-radar-state-get repo))
-             (old-issues (or (plist-get old-item :issues) 0))
-             (old-prs (or (plist-get old-item :pr) 0))
+             (cached (gh-radar-cache-get repo))
+             (mem (gh-radar-state-get repo))
+             (reference (or mem cached))
              (cur-issues (or (plist-get item :issues) 0))
              (cur-prs (or (plist-get item :pr) 0))
-             (new-issues (max 0 (- cur-issues old-issues)))
-             (new-prs (max 0 (- cur-prs old-prs))))
-        (when old-item
-          (setq total-new-issues (+ total-new-issues new-issues))
-          (setq total-new-prs (+ total-new-prs new-prs)))
+             (incoming-issues (plist-get item :recent-issues))
+             (incoming-prs (plist-get item :recent-prs))
+             last-issue
+             last-pr
+             unread-issues
+             unread-prs)
+        (if (null reference)
+            ;; first time seeing this repository: establish baseline
+            (let ((max-i (if incoming-issues
+                             (apply #'max (mapcar (lambda (x) (plist-get x :number)) incoming-issues))
+                           0))
+                  (max-p (if incoming-prs
+                             (apply #'max (mapcar (lambda (x) (plist-get x :number)) incoming-prs))
+                           0)))
+              (setq last-issue max-i
+                    last-pr max-p
+                    unread-issues nil
+                    unread-prs nil))
+          ;; existing repository: compute unread additions
+          (setq last-issue (or (plist-get reference :last-seen-issue) 0)
+                last-pr (or (plist-get reference :last-seen-pr) 0)
+                unread-issues (copy-sequence (or (plist-get reference :unread-issues) nil))
+                unread-prs (copy-sequence (or (plist-get reference :unread-prs) nil)))
+          (dolist (issue incoming-issues)
+            (let ((num (plist-get issue :number)))
+              (when (and (> num last-issue)
+                         (not (cl-some (lambda (x) (= (plist-get x :number) num)) unread-issues)))
+                (push issue unread-issues)
+                (setq last-issue (max last-issue num))
+                (setq newly-detected-issues (1+ newly-detected-issues)))))
+          (dolist (pr incoming-prs)
+            (let ((num (plist-get pr :number)))
+              (when (and (> num last-pr)
+                         (not (cl-some (lambda (x) (= (plist-get x :number) num)) unread-prs)))
+                (push pr unread-prs)
+                (setq last-pr (max last-pr num))
+                (setq newly-detected-prs (1+ newly-detected-prs))))))
+
+        ;; keep unread items sorted descending by number
+        (setq unread-issues (sort unread-issues (lambda (a b) (> (plist-get a :number) (plist-get b :number))))
+              unread-prs (sort unread-prs (lambda (a b) (> (plist-get a :number) (plist-get b :number)))))
+
+        ;; persist to disk cache
+        (gh-radar-cache-put repo
+                            (list :issues cur-issues
+                                  :pr cur-prs
+                                  :last-seen-issue last-issue
+                                  :last-seen-pr last-pr
+                                  :unread-issues unread-issues
+                                  :unread-prs unread-prs))
+
         (push (cons repo
                     (list :repo repo
                           :owner (plist-get item :owner)
                           :name (plist-get item :name)
                           :issues cur-issues
                           :pr cur-prs
-                          :new-issues (if old-item new-issues 0)
-                          :new-pr (if old-item new-prs 0)
+                          :last-seen-issue last-issue
+                          :last-seen-pr last-pr
+                          :unread-issues unread-issues
+                          :unread-prs unread-prs
+                          :new-issues (length unread-issues)
+                          :new-pr (length unread-prs)
                           :timestamp (current-time)))
               updated-alist)))
     (setq gh-radar-state-data (nreverse updated-alist))
-    (when (and gh-radar-notify-on-new (> (+ total-new-issues total-new-prs) 0))
+    (when (and gh-radar-notify-on-new (> (+ newly-detected-issues newly-detected-prs) 0))
       (message "[gh-radar] New activity detected: +%d issues, +%d pull requests"
-               total-new-issues total-new-prs))
+               newly-detected-issues newly-detected-prs))
     (run-hook-with-args 'gh-radar-update-hook gh-radar-state-data)
     (force-mode-line-update t)))
 
+(defun gh-radar-state-unread-items ()
+  "Return a flat list of all unread items across all monitored repositories."
+  (let ((items nil))
+    (dolist (entry gh-radar-state-data)
+      (let* ((repo (car entry))
+             (data (cdr entry))
+             (owner (plist-get data :owner))
+             (name (plist-get data :name)))
+        (dolist (issue (plist-get data :unread-issues))
+          (push (append (list :repo repo :owner owner :name name) issue) items))
+        (dolist (pr (plist-get data :unread-prs))
+          (push (append (list :repo repo :owner owner :name name) pr) items))))
+    (nreverse items)))
+
+(defun gh-radar-state-dismiss-item (repo type number)
+  "Dismiss a single unread item of TYPE (:issue or :pr) with NUMBER in REPO."
+  (when-let* ((entry (assoc repo gh-radar-state-data)))
+    (let* ((data (cdr entry))
+           (ui (plist-get data :unread-issues))
+           (up (plist-get data :unread-prs)))
+      (if (eq type :issue)
+          (setq ui (cl-remove-if (lambda (x) (= (plist-get x :number) number)) ui))
+        (setq up (cl-remove-if (lambda (x) (= (plist-get x :number) number)) up)))
+      (setcdr entry (plist-put data :unread-issues ui))
+      (setcdr entry (plist-put (cdr entry) :unread-prs up))
+      (setcdr entry (plist-put (cdr entry) :new-issues (length ui)))
+      (setcdr entry (plist-put (cdr entry) :new-pr (length up)))
+      (gh-radar-cache-put repo
+                          (list :issues (plist-get data :issues)
+                                :pr (plist-get data :pr)
+                                :last-seen-issue (plist-get data :last-seen-issue)
+                                :last-seen-pr (plist-get data :last-seen-pr)
+                                :unread-issues ui
+                                :unread-prs up))
+      (run-hook-with-args 'gh-radar-update-hook gh-radar-state-data)
+      (force-mode-line-update t))))
+
+(defun gh-radar-state-dismiss-repo (repo)
+  "Dismiss all unread items for REPO."
+  (when-let* ((entry (assoc repo gh-radar-state-data)))
+    (let ((data (cdr entry)))
+      (setcdr entry (plist-put data :unread-issues nil))
+      (setcdr entry (plist-put (cdr entry) :unread-prs nil))
+      (setcdr entry (plist-put (cdr entry) :new-issues 0))
+      (setcdr entry (plist-put (cdr entry) :new-pr 0))
+      (gh-radar-cache-put repo
+                          (list :issues (plist-get data :issues)
+                                :pr (plist-get data :pr)
+                                :last-seen-issue (plist-get data :last-seen-issue)
+                                :last-seen-pr (plist-get data :last-seen-pr)
+                                :unread-issues nil
+                                :unread-prs nil))
+      (run-hook-with-args 'gh-radar-update-hook gh-radar-state-data)
+      (force-mode-line-update t))))
+
+(defun gh-radar-state-dismiss-all ()
+  "Dismiss all unread items across all monitored repositories."
+  (dolist (entry gh-radar-state-data)
+    (let* ((repo (car entry))
+           (data (cdr entry)))
+      (setcdr entry (plist-put data :unread-issues nil))
+      (setcdr entry (plist-put (cdr entry) :unread-prs nil))
+      (setcdr entry (plist-put (cdr entry) :new-issues 0))
+      (setcdr entry (plist-put (cdr entry) :new-pr 0))
+      (gh-radar-cache-put repo
+                          (list :issues (plist-get data :issues)
+                                :pr (plist-get data :pr)
+                                :last-seen-issue (plist-get data :last-seen-issue)
+                                :last-seen-pr (plist-get data :last-seen-pr)
+                                :unread-issues nil
+                                :unread-prs nil))))
+  (when gh-radar-state-notifications
+    (setq gh-radar-state-notifications
+          (plist-put gh-radar-state-notifications :new 0)))
+  (run-hook-with-args 'gh-radar-update-hook gh-radar-state-data)
+  (force-mode-line-update t))
+
 (defun gh-radar-state-update-notifications (count &optional items)
-  "Update `gh-radar-state-notifications` with COUNT and optional ITEMS list.
-Calculates delta since previous update and alerts when new notifications arrive."
+  "Update `gh-radar-state-notifications` with COUNT and optional ITEMS list."
   (let* ((old-count (or (plist-get gh-radar-state-notifications :count) 0))
          (cur-count (or count 0))
          (new-count (if gh-radar-state-notifications (max 0 (- cur-count old-count)) 0)))
@@ -86,6 +243,8 @@ Calculates delta since previous update and alerts when new notifications arrive.
   (setq gh-radar-state-data nil)
   (setq gh-radar-state-notifications nil)
   (force-mode-line-update t))
+
+(gh-radar-state-load-cache)
 
 (provide 'gh-radar-state)
 ;;; gh-radar-state.el ends here
