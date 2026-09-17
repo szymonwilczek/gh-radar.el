@@ -10,7 +10,7 @@
 ;;; Code:
 
 (defgroup gh-radal nil
-  "Lightweight GitHub issues and pull requests radar using gh CLI."
+  "GitHub issues and pull requests radar using gh CLI."
   :group 'tools
   :prefix "gh-radal-")
 
@@ -43,6 +43,12 @@ Default is 600 seconds (10 minutes)."
 
 (defcustom gh-radal-notify-on-new t
   "Whether to notify when new issues or pull requests are detected."
+  :type 'boolean
+  :group 'gh-radal)
+
+(defcustom gh-radal-show-prefix nil
+  "Whether to display the GitHub icon or prefix before the counters.
+Defaults to nil."
   :type 'boolean
   :group 'gh-radal)
 
