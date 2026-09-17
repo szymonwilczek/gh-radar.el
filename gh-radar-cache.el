@@ -135,6 +135,10 @@ Returns the normalized cache plist."
       (setq gh-radar-track-notifications val))
     (when (and (eq key :count-display) (boundp 'gh-radar-count-display))
       (setq gh-radar-count-display val))
+    (when (and (eq key :bell-modeline) (boundp 'gh-radar-bell-modeline))
+      (setq gh-radar-bell-modeline val))
+    (when (and (eq key :hide-zero-counts) (boundp 'gh-radar-hide-zero-counts))
+      (setq gh-radar-hide-zero-counts val))
     (gh-radar-cache-save)))
 
 (defun gh-radar-cache-get (repo)
