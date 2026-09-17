@@ -33,6 +33,7 @@ Tracks open issue and pull request counts for specified GitHub repositories usin
 
 * Commands
 
+- =gh-radar-dashboard=: Open dedicated interactive dashboard buffer.
 - =gh-radar-refresh=: Trigger asynchronous API query.
 - =gh-radar-browse=: Open repository issues or pull requests in browser.
 
