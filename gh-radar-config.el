@@ -135,12 +135,10 @@ Defaults to nil."
 When t, hide any segment (inbox, issues, pr, bell) whose count is 0.
 When a list of symbols (e.g. `(inbox)', `(issues)', `(pr)', `(bell)'),
 hide only those specific segments when their count is 0.
-When nil, individual segments with zero counts are shown, but in bell mode
-(`gh-radar-bell-modeline') a total count of zero is hidden by default.
-To force displaying zero in bell mode, set to `never'."
-  :type '(choice (const :tag "Never hide zero counts" nil)
+When nil (or `never'), zero counts are not hidden."
+  :type '(choice (const :tag "Disabled (never hide zeros)" nil)
                  (const :tag "Hide all zero counts" t)
-                 (const :tag "Never hide zero counts even in bell mode" never)
+                 (const :tag "Never hide zero counts (legacy)" never)
                  (set :tag "Hide specific zero counts"
                       (const :tag "Inbox" inbox)
                       (const :tag "Issues" issues)

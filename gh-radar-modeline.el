@@ -89,17 +89,20 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
   "Return non-nil if segment TYPE with COUNT should be hidden.
 TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
   (and (zerop count)
-       (or (eq gh-radar-hide-zero-counts t)
-           (and (eq type :bell)
-                (not (eq gh-radar-hide-zero-counts 'never)))
-           (and (listp gh-radar-hide-zero-counts)
-                (let ((sym (pcase type
-                             (:inbox 'inbox)
-                             (:issue 'issues)
-                             (:pr 'pr)
-                             (:bell 'bell))))
-                  (or (memq sym gh-radar-hide-zero-counts)
-                      (memq type gh-radar-hide-zero-counts)))))))
+       (cond
+        ((eq gh-radar-hide-zero-counts t) t)
+        ((or (null gh-radar-hide-zero-counts)
+             (eq gh-radar-hide-zero-counts 'never))
+         nil)
+        ((listp gh-radar-hide-zero-counts)
+         (let ((sym (pcase type
+                      (:inbox 'inbox)
+                      (:issue 'issues)
+                      (:pr 'pr)
+                      (:bell 'bell))))
+           (or (memq sym gh-radar-hide-zero-counts)
+               (memq type gh-radar-hide-zero-counts))))
+        (t nil))))
 
 (defun gh-radar-modeline--format-segment (icon total new)
   "Format a mode-line metric segment with ICON, TOTAL count, and NEW delta."
