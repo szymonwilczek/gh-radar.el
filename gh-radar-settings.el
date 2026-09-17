@@ -165,6 +165,36 @@
     (let ((end (point)))
       (push (list beg end :hide-zero-counts nil) gh-radar-settings--rows))))
 
+(defun gh-radar-settings--insert-icons ()
+  "Insert icon glyph configuration entries."
+  (let ((types '((inbox . "Inbox Icon")
+                 (issues . "Issues Icon")
+                 (pr . "Pull Requests Icon")
+                 (bell . "Modeline Bell Icon")
+                 (repo . "Repository Icon")))
+        (width (if (fboundp 'gh-radar-dashboard-width) (gh-radar-dashboard-width) 76)))
+    (insert "  "
+            (propertize "Icon Glyphs (press RET or 'I' to customize)" 'face 'gh-radar-dashboard-section-header)
+            "\n"
+            "  "
+            (propertize (make-string width ?─) 'face 'gh-radar-dashboard-separator)
+            "\n\n")
+    (dolist (entry types)
+      (let* ((sym (car entry))
+             (label (cdr entry))
+             (beg (point))
+             (cur-val (cdr (or (assq sym (gh-radar-cache-get-setting :icons nil))
+                               (assq sym gh-radar-icons)
+                               '(nil . ""))))
+             (glyph (gh-radar-icon sym)))
+        (insert "    [RET]  "
+                (propertize (format "%-24s" (concat label ":")) 'face 'gh-radar-dashboard-unread-title)
+                (format "%s  " (propertize glyph 'face 'gh-radar-dashboard-repo))
+                (propertize (format "[ %s ]" cur-val) 'face 'gh-radar-dashboard-meta)
+                "\n\n")
+        (let ((end (point)))
+          (push (list beg end :icon sym) gh-radar-settings--rows))))))
+
 (defun gh-radar-settings--insert-repos ()
   "Insert repository configuration entries."
   (let* ((repos (gh-radar-cache-get-repos))
@@ -220,6 +250,7 @@
       (gh-radar-settings--insert-count-display)
       (gh-radar-settings--insert-bell-modeline)
       (gh-radar-settings--insert-hide-zero-counts)
+      (gh-radar-settings--insert-icons)
       (gh-radar-settings--insert-repos)
       (setq gh-radar-settings--rows (nreverse gh-radar-settings--rows))
       (goto-char (point-min))
@@ -352,6 +383,41 @@
 
 (defalias 'gh-radar-toggle-hide-zeros #'gh-radar-settings-toggle-hide-zeros)
 
+;;;###autoload
+(defun gh-radar-settings-set-icon (&optional icon-type)
+  "Prompt to customize icon glyph for ICON-TYPE."
+  (interactive)
+  (let* ((row (gh-radar-settings--row-at-point))
+         (type (or icon-type
+                   (when (and row (eq (nth 2 row) :icon)) (nth 3 row))
+                   (intern (completing-read "Configure icon for: "
+                                            '("inbox" "issues" "pr" "bell" "repo")
+                                            nil t))))
+         (type-sym (if (keywordp type) (intern (substring (symbol-name type) 1)) type))
+         (cur-val (cdr (or (assq type-sym (gh-radar-cache-get-setting :icons nil))
+                           (assq type-sym gh-radar-icons)
+                           '(nil . ""))))
+         (candidates (when (fboundp 'nerd-icons--read-candidates)
+                       (ignore-errors (nerd-icons--read-candidates))))
+         (prompt (format "Icon for %s (current: %s): " type-sym cur-val))
+         (input (if candidates
+                    (completing-read prompt candidates nil nil nil nil cur-val)
+                  (read-string prompt cur-val)))
+         (clean-name
+          (if (and input (string-match "\t+\\(nf-[^ \t\n\r]+\\)" input))
+              (match-string 1 input)
+            (string-trim (or input "")))))
+    (when (> (length clean-name) 0)
+      (gh-radar-cache-set-icon type-sym clean-name)
+      (gh-radar-settings-render)
+      (force-mode-line-update t)
+      (when (fboundp 'gh-radar-dashboard-render)
+        (when-let* ((dash (get-buffer "*gh-radar*")))
+          (when (buffer-live-p dash)
+            (with-current-buffer dash
+              (gh-radar-dashboard-render)))))
+      (message "[gh-radar] Icon for %s set to: %s" type-sym clean-name))))
+
 (defun gh-radar-settings-smart-action ()
   "Execute the appropriate action for row at point on RET."
   (interactive)
@@ -361,6 +427,7 @@
         (:count-display (gh-radar-settings-toggle-count-display))
         (:bell-modeline (gh-radar-settings-toggle-bell))
         (:hide-zero-counts (gh-radar-settings-toggle-hide-zeros))
+        (:icon (gh-radar-settings-set-icon (nth 3 row)))
         (:repo (gh-radar-settings-toggle-issues)))
     (gh-radar-settings-add-repo (read-string "Add repository (owner/name): "))))
 
@@ -402,6 +469,7 @@
     (define-key map (kbd "B") #'gh-radar-settings-toggle-bell)
     (define-key map (kbd "z") #'gh-radar-settings-toggle-hide-zeros)
     (define-key map (kbd "Z") #'gh-radar-settings-toggle-hide-zeros)
+    (define-key map (kbd "I") #'gh-radar-settings-set-icon)
     (define-key map (kbd "RET") #'gh-radar-settings-smart-action)
     (define-key map [return] #'gh-radar-settings-smart-action)
     (define-key map (kbd "q") #'gh-radar-settings-quit)
@@ -449,6 +517,7 @@
       (kbd "B") #'gh-radar-settings-toggle-bell
       (kbd "z") #'gh-radar-settings-toggle-hide-zeros
       (kbd "Z") #'gh-radar-settings-toggle-hide-zeros
+      (kbd "I") #'gh-radar-settings-set-icon
       (kbd "RET") #'gh-radar-settings-smart-action
       (kbd "q") #'gh-radar-settings-quit
       (kbd "s") #'gh-radar-settings-quit
