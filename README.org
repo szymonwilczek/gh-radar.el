@@ -28,6 +28,7 @@ Tracks open issue, pull request counts, and unread notifications using the =gh= 
 - =gh-radar-show-issue-icon=: Display issues icon in mode-line (default: =t=).
 - =gh-radar-show-pr-icon=: Display pull requests icon in mode-line (default: =t=).
 - =gh-radar-modeline-icons=: Set of icons to display in mode-line (default: ='(inbox issues pr)=).
+- =gh-radar-hide-zero-counts=: Hide mode-line segments with zero count: =t= (all), list like ='(inbox)=, or =nil= (default: =nil=).
 - =gh-radar-interval=: Background polling frequency in seconds (default: 600).
 - =gh-radar-gh-executable=: Path to =gh= binary (default: ="gh"=).
 - =gh-radar-notify-on-new=: Echo notification on count increments (default: =t=).
