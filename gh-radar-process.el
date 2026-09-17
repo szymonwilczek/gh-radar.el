@@ -10,12 +10,37 @@
 ;;; Code:
 
 (require 'json)
+(require 'seq)
 (require 'gh-radar-config)
 (require 'gh-radar-query)
 (require 'gh-radar-state)
 
 (defvar gh-radar-process--current nil
   "Current active gh-radar process instance.")
+
+(defun gh-radar-process--extract-nodes (connection-node type)
+  "Extract item plists from CONNECTION-NODE with TYPE (:issue or :pr)."
+  (when (hash-table-p connection-node)
+    (let ((nodes (gethash "nodes" connection-node))
+          (items nil))
+      (when (seqp nodes)
+        (seq-doseq (n nodes)
+          (when (hash-table-p n)
+            (let* ((num (gethash "number" n))
+                   (title (gethash "title" n))
+                   (url (gethash "url" n))
+                   (created-at (gethash "createdAt" n))
+                   (author-node (gethash "author" n))
+                   (author (when (hash-table-p author-node)
+                             (gethash "login" author-node))))
+              (push (list :number num
+                          :title title
+                          :url url
+                          :type type
+                          :created-at created-at
+                          :author (or author "ghost"))
+                    items)))))
+      (nreverse items))))
 
 (defun gh-radar-process--parse-response (raw-json alias-map)
   "Parse RAW-JSON string from GitHub API according to ALIAS-MAP."
@@ -35,12 +60,16 @@
                 (let* ((issues-node (gethash "issues" node))
                        (pr-node (gethash "pullRequests" node))
                        (issues-cnt (when (hash-table-p issues-node) (gethash "totalCount" issues-node)))
-                       (pr-cnt (when (hash-table-p pr-node) (gethash "totalCount" pr-node))))
+                       (pr-cnt (when (hash-table-p pr-node) (gethash "totalCount" pr-node)))
+                       (recent-issues (gh-radar-process--extract-nodes issues-node :issue))
+                       (recent-prs (gh-radar-process--extract-nodes pr-node :pr)))
                   (push (list :repo (plist-get meta :repo)
                               :owner (plist-get meta :owner)
                               :name (plist-get meta :name)
                               :issues issues-cnt
-                              :pr pr-cnt)
+                              :pr pr-cnt
+                              :recent-issues recent-issues
+                              :recent-prs recent-prs)
                         records))))))
         (nreverse records))
     (error
