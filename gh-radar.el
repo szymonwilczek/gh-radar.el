@@ -63,16 +63,19 @@
 (defun gh-radar-browse ()
   "Select a monitored repository and open its issues or PRs in browser."
   (interactive)
-  (unless gh-radar-repos
-    (user-error "No repositories configured in `gh-radar-repos`"))
-  (let* ((repo-names (mapcar #'car gh-radar-repos))
-         (repo (completing-read "Open in browser: " repo-names nil t))
-         (target (completing-read (format "Open for %s: " repo) '("issues" "pulls" "repo") nil t "issues"))
-         (url (cond
-               ((string= target "issues") (format "https://github.com/%s/issues" repo))
-               ((string= target "pulls") (format "https://github.com/%s/pulls" repo))
-               (t (format "https://github.com/%s" repo)))))
-    (browse-url url)))
+  (let ((repos (or (when (fboundp 'gh-radar-cache-get-repos)
+                     (gh-radar-cache-get-repos))
+                   gh-radar-repos)))
+    (unless repos
+      (user-error "No repositories configured in `gh-radar-repos` or disk cache"))
+    (let* ((repo-names (mapcar #'car repos))
+           (repo (completing-read "Open in browser: " repo-names nil t))
+           (target (completing-read (format "Open for %s: " repo) '("issues" "pulls" "repo") nil t "issues"))
+           (url (cond
+                 ((string= target "issues") (format "https://github.com/%s/issues" repo))
+                 ((string= target "pulls") (format "https://github.com/%s/pulls" repo))
+                 (t (format "https://github.com/%s" repo)))))
+      (browse-url url))))
 
 (provide 'gh-radar)
 ;;; gh-radar.el ends here
