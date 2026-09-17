@@ -90,5 +90,54 @@ Calls optional CALLBACK with updated state data on success."
                    (kill-buffer stderr-buf))
                  (setq gh-radar-process--current nil))))))))
 
+(defvar gh-radar-process--notifications nil
+  "Current active gh-radar notifications process instance.")
+
+(defun gh-radar-process-fetch-notifications (&optional callback)
+  "Trigger asynchronous fetch for GitHub unread notifications.
+Calls optional CALLBACK with updated notification state on success."
+  (when (and gh-radar-process--notifications
+             (process-live-p gh-radar-process--notifications))
+    (delete-process gh-radar-process--notifications))
+  (let* ((default-directory (expand-file-name "~/"))
+         (stdout-buf (generate-new-buffer " *gh-radar-notifications*"))
+         (stderr-buf (generate-new-buffer " *gh-radar-notifications-err*"))
+         (cmd (list gh-radar-gh-executable "api" "notifications"))
+         (process-environment (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
+    (setq gh-radar-process--notifications
+          (make-process
+           :name "gh-radar-notifications"
+           :buffer stdout-buf
+           :stderr stderr-buf
+           :connection-type 'pipe
+           :command cmd
+           :noquery t
+           :sentinel
+           (lambda (proc event)
+             (when (memq (process-status proc) '(exit signal))
+               (let ((status (process-exit-status proc)))
+                 (if (zerop status)
+                     (with-current-buffer (process-buffer proc)
+                       (let* ((raw (buffer-string))
+                              (items (condition-case _
+                                         (if (fboundp 'json-parse-string)
+                                             (json-parse-string raw :array-type 'list)
+                                           (let ((json-array-type 'list))
+                                             (json-read-from-string raw)))
+                                       (error nil)))
+                              (count (if (listp items) (length items) 0)))
+                         (gh-radar-state-update-notifications count items)
+                         (when callback (funcall callback gh-radar-state-notifications))))
+                   (let ((err-msg (when (buffer-live-p stderr-buf)
+                                    (with-current-buffer stderr-buf
+                                      (string-trim (buffer-string))))))
+                     (message "[gh-radar] notifications fetch failed (code %d): %s %s"
+                              status (string-trim event) (or err-msg "")))))
+               (when (buffer-live-p (process-buffer proc))
+                 (kill-buffer (process-buffer proc)))
+               (when (buffer-live-p stderr-buf)
+                 (kill-buffer stderr-buf))
+               (setq gh-radar-process--notifications nil)))))))
+
 (provide 'gh-radar-process)
 ;;; gh-radar-process.el ends here
