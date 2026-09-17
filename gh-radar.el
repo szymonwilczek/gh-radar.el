@@ -15,13 +15,10 @@
 ;;; Code:
 
 (require 'gh-radar-config)
-(require 'gh-radar-cache)
 (require 'gh-radar-query)
 (require 'gh-radar-state)
 (require 'gh-radar-process)
 (require 'gh-radar-modeline)
-(require 'gh-radar-dashboard)
-(require 'gh-radar-settings)
 
 (defvar gh-radar--timer nil
   "Internal repeating timer for polling GitHub metrics.")
@@ -29,7 +26,7 @@
 (defun gh-radar-start-timer ()
   "Start or restart the periodic background fetch timer."
   (gh-radar-stop-timer)
-  (when (and (or gh-radar-repos gh-radar-track-notifications) (> gh-radar-interval 0))
+  (when (and gh-radar-repos (> gh-radar-interval 0))
     (run-with-idle-timer 1.5 nil #'gh-radar-process-fetch)
     (setq gh-radar--timer
           (run-at-time gh-radar-interval gh-radar-interval #'gh-radar-process-fetch))))
