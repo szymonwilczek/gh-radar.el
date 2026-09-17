@@ -139,7 +139,23 @@ Returns the normalized cache plist."
       (setq gh-radar-bell-modeline val))
     (when (and (eq key :hide-zero-counts) (boundp 'gh-radar-hide-zero-counts))
       (setq gh-radar-hide-zero-counts val))
+    (when (and (eq key :icons) (boundp 'gh-radar-icons))
+      (dolist (entry val)
+        (let ((existing (assq (car entry) gh-radar-icons)))
+          (if existing
+              (setcdr existing (cdr entry))
+            (push entry gh-radar-icons)))))
     (gh-radar-cache-save)))
+
+(defun gh-radar-cache-set-icon (type name)
+  "Set icon NAME for TYPE in cache and save."
+  (let* ((type-sym (if (keywordp type) (intern (substring (symbol-name type) 1)) type))
+         (icons (copy-sequence (gh-radar-cache-get-setting :icons nil)))
+         (existing (assq type-sym icons)))
+    (if existing
+        (setcdr existing name)
+      (push (cons type-sym name) icons))
+    (gh-radar-cache-set-setting :icons icons)))
 
 (defun gh-radar-cache-get (repo)
   "Retrieve cached item metrics plist for REPO (\"owner/name\")."

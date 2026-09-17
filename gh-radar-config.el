@@ -168,5 +168,68 @@ Supported values:
   "Face for inbox notification count."
   :group 'gh-radar)
 
+(declare-function nerd-icons-octicon "nerd-icons")
+(declare-function nerd-icons-faicon "nerd-icons")
+(declare-function nerd-icons-codicon "nerd-icons")
+(declare-function nerd-icons-mdicon "nerd-icons")
+(declare-function gh-radar-cache-get-setting "gh-radar-cache")
+
+(defcustom gh-radar-icons
+  '((inbox . "nf-oct-inbox")
+    (issues . "nf-oct-issue_opened")
+    (pr . "nf-oct-git_pull_request")
+    (bell . "nf-oct-bell")
+    (repo . "nf-oct-repo"))
+  "Alist mapping gh-radar item types to icon names or unicode characters."
+  :type '(alist :key-type symbol :value-type string)
+  :group 'gh-radar)
+
+(defcustom gh-radar-icon-fallbacks
+  '((inbox . "@")
+    (issues . "#")
+    (pr . "!")
+    (bell . "B")
+    (repo . "R"))
+  "Alist mapping gh-radar item types to terminal/fallback strings."
+  :type '(alist :key-type symbol :value-type string)
+  :group 'gh-radar)
+
+(defun gh-radar-resolve-icon (name fallback &optional face)
+  "Resolve icon NAME into a glyph string using nerd-icons or FALLBACK.
+If NAME is an emoji or raw string, return it directly.
+If FACE is non-nil, apply FACE to the returned glyph."
+  (let ((glyph
+         (cond
+          ((null name) fallback)
+          ((not (display-graphic-p)) fallback)
+          ((and (string-prefix-p "nf-oct-" name) (fboundp 'nerd-icons-octicon))
+           (or (ignore-errors (nerd-icons-octicon name)) fallback))
+          ((and (string-prefix-p "nf-fa-" name) (fboundp 'nerd-icons-faicon))
+           (or (ignore-errors (nerd-icons-faicon name)) fallback))
+          ((and (string-prefix-p "nf-cod-" name) (fboundp 'nerd-icons-codicon))
+           (or (ignore-errors (nerd-icons-codicon name)) fallback))
+          ((and (string-prefix-p "nf-md-" name) (fboundp 'nerd-icons-mdicon))
+           (or (ignore-errors (nerd-icons-mdicon name)) fallback))
+          ((and (fboundp 'nerd-icons-octicon)
+                (ignore-errors (nerd-icons-octicon (concat "nf-oct-" name)))))
+          ((stringp name) name)
+          (t fallback))))
+    (if face
+        (propertize glyph 'face face 'font-lock-face face)
+      glyph)))
+
+(defun gh-radar-icon (type &optional face)
+  "Return resolved icon glyph for symbol TYPE (:inbox, :issues, :pr, :bell, :repo).
+If FACE is non-nil, apply FACE to the glyph."
+  (let* ((type-sym (if (keywordp type) (intern (substring (symbol-name type) 1)) type))
+         (cached-icons (when (fboundp 'gh-radar-cache-get-setting)
+                         (gh-radar-cache-get-setting :icons nil)))
+         (icon-entry (or (assq type-sym cached-icons)
+                         (assq type-sym gh-radar-icons)))
+         (name (if (consp icon-entry) (cdr icon-entry) icon-entry))
+         (fallback-entry (assq type-sym gh-radar-icon-fallbacks))
+         (fallback (if (consp fallback-entry) (cdr fallback-entry) (symbol-name type-sym))))
+    (gh-radar-resolve-icon (or name (symbol-name type-sym)) (or fallback "?") face)))
+
 (provide 'gh-radar-config)
 ;;; gh-radar-config.el ends here
