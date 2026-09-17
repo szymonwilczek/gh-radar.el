@@ -127,49 +127,61 @@
   "Return the repository plist for the row at point, or nil."
   (nth 2 (gh-radar-dashboard--row-at-point)))
 
-(defun gh-radar-dashboard-open-issues ()
-  "Open issues for the repository at point using Octo or browser."
+(defun gh-radar-dashboard-open-notifications ()
+  "Open GitHub notifications in web browser."
   (interactive)
-  (if-let* ((item (gh-radar-dashboard-current-repo))
-            (owner (plist-get item :owner))
-            (name (plist-get item :name)))
-      (if (fboundp 'octo-dashboard-open)
-          (octo-dashboard-open owner name 'issues)
-        (browse-url (format "https://github.com/%s/%s/issues" owner name)))
-    (user-error "No repository at point")))
+  (browse-url "https://github.com/notifications"))
+
+(defun gh-radar-dashboard-open-issues ()
+  "Open issues for the repository or inbox at point."
+  (interactive)
+  (if-let* ((item (gh-radar-dashboard-current-repo)))
+      (if (plist-get item :inbox)
+          (gh-radar-dashboard-open-notifications)
+        (let ((owner (plist-get item :owner))
+              (name (plist-get item :name)))
+          (if (fboundp 'octo-dashboard-open)
+              (octo-dashboard-open owner name 'issues)
+            (browse-url (format "https://github.com/%s/%s/issues" owner name)))))
+    (user-error "No item at point")))
 
 (defun gh-radar-dashboard-open-pulls ()
-  "Open pull requests for the repository at point using Octo or browser."
+  "Open pull requests for the repository at point."
   (interactive)
-  (if-let* ((item (gh-radar-dashboard-current-repo))
-            (owner (plist-get item :owner))
-            (name (plist-get item :name)))
-      (if (fboundp 'octo-dashboard-open)
-          (octo-dashboard-open owner name 'pulls)
-        (browse-url (format "https://github.com/%s/%s/pulls" owner name)))
-    (user-error "No repository at point")))
+  (if-let* ((item (gh-radar-dashboard-current-repo)))
+      (if (plist-get item :inbox)
+          (gh-radar-dashboard-open-notifications)
+        (let ((owner (plist-get item :owner))
+              (name (plist-get item :name)))
+          (if (fboundp 'octo-dashboard-open)
+              (octo-dashboard-open owner name 'pulls)
+            (browse-url (format "https://github.com/%s/%s/pulls" owner name)))))
+    (user-error "No item at point")))
 
 (defun gh-radar-dashboard-browse-repo ()
-  "Open repository at point in web browser."
+  "Open repository or inbox at point in web browser."
   (interactive)
-  (if-let* ((item (gh-radar-dashboard-current-repo))
-            (repo (plist-get item :repo)))
-      (browse-url (format "https://github.com/%s" repo))
-    (user-error "No repository at point")))
+  (if-let* ((item (gh-radar-dashboard-current-repo)))
+      (if (plist-get item :inbox)
+          (gh-radar-dashboard-open-notifications)
+        (browse-url (format "https://github.com/%s" (plist-get item :repo))))
+    (user-error "No item at point")))
 
 (defun gh-radar-dashboard-open-at-point ()
-  "Open issues, pulls, or browser for the repository at point."
+  "Open issues, pulls, or browser for the repository or inbox at point."
   (interactive)
-  (if-let* ((item (gh-radar-dashboard-current-repo))
-            (repo (plist-get item :repo)))
-      (let* ((choice (completing-read (format "Action for %s: " repo)
-                                      '("issues" "pulls" "browser")
-                                      nil t "issues")))
-        (pcase choice
-          ("issues" (gh-radar-dashboard-open-issues))
-          ("pulls" (gh-radar-dashboard-open-pulls))
-          ("browser" (gh-radar-dashboard-browse-repo))))
-    (user-error "No repository at point")))
+  (if-let* ((item (gh-radar-dashboard-current-repo)))
+      (if (plist-get item :inbox)
+          (gh-radar-dashboard-open-notifications)
+        (let* ((repo (plist-get item :repo))
+               (choice (completing-read (format "Action for %s: " repo)
+                                       '("issues" "pulls" "browser")
+                                       nil t "issues")))
+          (pcase choice
+            ("issues" (gh-radar-dashboard-open-issues))
+            ("pulls" (gh-radar-dashboard-open-pulls))
+            ("browser" (gh-radar-dashboard-browse-repo)))))
+    (user-error "No item at point")))
 
 (defun gh-radar-dashboard--insert-header ()
   "Insert the dashboard banner, statistics, and rule."
@@ -231,6 +243,29 @@
       (put-text-property beg end 'gh-radar-item data)
       (push (list beg end data) gh-radar-dashboard--rows))))
 
+(defun gh-radar-dashboard--insert-inbox ()
+  "Insert an interactive row for GitHub notifications inbox."
+  (when gh-radar-track-notifications
+    (let* ((cnt (if gh-radar-state-notifications (or (plist-get gh-radar-state-notifications :count) 0) 0))
+           (new-cnt (if gh-radar-state-notifications (or (plist-get gh-radar-state-notifications :new) 0) 0))
+           (time (when gh-radar-state-notifications (plist-get gh-radar-state-notifications :timestamp)))
+           (inbox-icon (gh-radar-dashboard--icon "nf-oct-inbox" "@" 'gh-radar-inbox-face))
+           (data (list :inbox t :count cnt :new new-cnt :timestamp time))
+           (beg (point)))
+      (insert "  " inbox-icon "  " (propertize "Inbox (Notifications)" 'face 'gh-radar-dashboard-repo) "\n")
+      (insert "     "
+              (propertize (format "%d unread notifications" cnt) 'face 'gh-radar-inbox-face)
+              (if (> new-cnt 0)
+                  (format " %s" (propertize (format "(+%d)" new-cnt) 'face 'gh-radar-new-face))
+                "")
+              "    "
+              (propertize (format "· updated %s" (gh-radar-dashboard--time-ago time))
+                          'face 'gh-radar-dashboard-meta)
+              "\n\n")
+      (let ((end (point)))
+        (put-text-property beg end 'gh-radar-item data)
+        (push (list beg end data) gh-radar-dashboard--rows)))))
+
 (defun gh-radar-dashboard-render ()
   "Render the whole radar dashboard buffer."
   (let ((inhibit-read-only t)
@@ -242,10 +277,12 @@
       (delete-overlay gh-radar-dashboard--highlight))
     (erase-buffer)
     (gh-radar-dashboard--insert-header)
+    (gh-radar-dashboard--insert-inbox)
     (if (null gh-radar-state-data)
-        (insert "  " (propertize "No repository data available. Press 'g' to refresh."
-                                 'face 'gh-radar-dashboard-meta)
-                "\n")
+        (unless gh-radar-track-notifications
+          (insert "  " (propertize "No repository data available. Press 'g' to refresh."
+                                   'face 'gh-radar-dashboard-meta)
+                  "\n"))
       (dolist (item gh-radar-state-data)
         (gh-radar-dashboard--insert-row item)))
     (setq gh-radar-dashboard--rows (nreverse gh-radar-dashboard--rows))
