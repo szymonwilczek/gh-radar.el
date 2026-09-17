@@ -10,6 +10,8 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+
 (defcustom gh-radar-cache-file (locate-user-emacs-file "gh-radar-cache.eld")
   "File path for storing persistent configuration and unread activity."
   :type 'file
@@ -76,6 +78,8 @@ Returns the normalized cache plist."
   "Set configured REPOS list in cache and persist to disk."
   (let ((data (gh-radar-cache--get-data)))
     (setq gh-radar-cache--data (plist-put data :repos repos))
+    (when (boundp 'gh-radar-repos)
+      (setq gh-radar-repos repos))
     (gh-radar-cache-save)))
 
 (defun gh-radar-cache-add-repo (repo-name &optional targets)
@@ -127,6 +131,8 @@ Returns the normalized cache plist."
     (setq settings (plist-put settings key val))
     (setq data (plist-put data :settings settings))
     (setq gh-radar-cache--data data)
+    (when (and (eq key :track-notifications) (boundp 'gh-radar-track-notifications))
+      (setq gh-radar-track-notifications val))
     (gh-radar-cache-save)))
 
 (defun gh-radar-cache-get (repo)
