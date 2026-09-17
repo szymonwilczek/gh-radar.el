@@ -54,6 +54,17 @@ Defaults to t."
   :type 'boolean
   :group 'gh-radar)
 
+(defcustom gh-radar-dashboard-display-style 'full-window
+  "Display style for opening the interactive dashboard buffer.
+Supported values:
+  `full-window'  - Open fullscreen in active frame and maximize (default).
+  `same-window'  - Open in current window as a buffer tab.
+  `pop-to-buffer' - Use standard Emacs `pop-to-buffer'."
+  :type '(choice (const :tag "Full window (maximize)" full-window)
+                 (const :tag "Same window" same-window)
+                 (const :tag "Pop to buffer" pop-to-buffer))
+  :group 'gh-radar)
+
 (defface gh-radar-prefix-face
   '((t :inherit font-lock-comment-face :weight bold))
   "Face for the radar prefix or icon."
