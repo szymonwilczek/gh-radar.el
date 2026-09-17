@@ -53,21 +53,23 @@
           (setq tot-prs (+ tot-prs (or (plist-get data :pr) 0)))
           (setq tot-new-issues (+ tot-new-issues (or (plist-get data :new-issues) 0)))
           (setq tot-new-prs (+ tot-new-prs (or (plist-get data :new-pr) 0)))))
-      (let* ((icon (gh-radal-modeline--icon "nf-oct-mark_github" "GH"))
+      (let* ((prefix-str (when gh-radal-show-prefix
+                           (format "%s  " (propertize (gh-radal-modeline--icon "nf-oct-mark_github" "GH")
+                                                      'face 'gh-radal-prefix-face))))
              (issue-icon (gh-radal-modeline--icon "nf-oct-issue_opened" "#"))
              (pr-icon (gh-radal-modeline--icon "nf-oct-git_pull_request" "PR"))
              (map (let ((km (make-sparse-keymap)))
                     (define-key km [mode-line mouse-1] (lambda () (interactive) (message (gh-radal-modeline--tooltip))))
                     km))
-             (str (format " %s %s%d%s %s%d%s"
-                          (propertize icon 'face 'gh-radal-prefix-face)
+             (str (format " %s%s %d%s  %s %d%s"
+                          (or prefix-str "")
                           issue-icon tot-issues
                           (if (> tot-new-issues 0)
-                              (propertize (format "(+%d)" tot-new-issues) 'face 'gh-radal-new-face)
+                              (propertize (format " (+%d)" tot-new-issues) 'face 'gh-radal-new-face)
                             "")
                           pr-icon tot-prs
                           (if (> tot-new-prs 0)
-                              (propertize (format "(+%d)" tot-new-prs) 'face 'gh-radal-new-face)
+                              (propertize (format " (+%d)" tot-new-prs) 'face 'gh-radal-new-face)
                             ""))))
         (propertize str
                     'mouse-face 'mode-line-highlight
