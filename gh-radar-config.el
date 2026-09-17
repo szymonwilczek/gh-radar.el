@@ -75,6 +75,20 @@ Defaults to \\='(inbox issues pr)."
               (const :tag "Pull requests icon" pr))
   :group 'gh-radar)
 
+(defcustom gh-radar-hide-zero-counts nil
+  "Whether to hide mode-line segments when their count is zero.
+When t, hide any segment (inbox, issues, pr) whose count is 0.
+When a list of symbols (e.g. `(inbox)', `(issues)', `(pr)'), hide only
+those specific segments when their count is 0.
+Defaults to nil (show segments even with zero count)."
+  :type '(choice (const :tag "Never hide zero counts" nil)
+                 (const :tag "Hide all zero counts" t)
+                 (set :tag "Hide specific zero counts"
+                      (const :tag "Inbox" inbox)
+                      (const :tag "Issues" issues)
+                      (const :tag "Pull requests" pr)))
+  :group 'gh-radar)
+
 (defcustom gh-radar-track-notifications t
   "Whether to track unread notifications from GitHub inbox.
 Defaults to t."
