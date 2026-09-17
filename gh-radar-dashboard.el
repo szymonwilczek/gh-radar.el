@@ -188,21 +188,27 @@
   (let* ((width (gh-radar-dashboard-width))
          (tot-issues 0)
          (tot-prs 0)
-         (tot-repos (length gh-radar-state-data)))
+         (tot-repos (length gh-radar-state-data))
+         (inbox-cnt (when (and gh-radar-track-notifications gh-radar-state-notifications)
+                      (or (plist-get gh-radar-state-notifications :count) 0)))
+         (meta-parts (list (format "Tracking %d repositories" tot-repos))))
     (dolist (item gh-radar-state-data)
       (let ((data (cdr item)))
         (setq tot-issues (+ tot-issues (or (plist-get data :issues) 0)))
         (setq tot-prs (+ tot-prs (or (plist-get data :pr) 0)))))
+    (when inbox-cnt
+      (push (format "%d unread notifications" inbox-cnt) meta-parts))
+    (push (format "%d open issues" tot-issues) meta-parts)
+    (push (format "%d open PRs" tot-prs) meta-parts)
     (insert "  "
             (propertize "gh-radar" 'face 'gh-radar-dashboard-title)
             "\n"
             "  "
-            (propertize (format "Tracking %d repositories · %d open issues · %d open PRs"
-                                tot-repos tot-issues tot-prs)
+            (propertize (string-join (nreverse meta-parts) " · ")
                         'face 'gh-radar-dashboard-meta)
             "\n\n"
             "  "
-            (propertize "[g] Refresh   [RET] Open   [i] Issues   [p] PRs   [w] Web   [?] Help   [q] Quit"
+            (propertize "[g] Refresh   [RET] Open   [i] Issues   [p] PRs   [N] Inbox   [w] Web   [?] Help   [q] Quit"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
@@ -323,6 +329,7 @@
         (insert "  RET          Open menu (issues/pulls/web)\n")
         (insert "  i            Open issues (Octo / Web)\n")
         (insert "  P, p         Open pull requests (Octo / Web)\n")
+        (insert "  N            Open GitHub notifications\n")
         (insert "  w, b         Open repository in browser\n")
         (insert "  g, r         Refresh radar metrics\n\n")
         (insert (propertize "General\n" 'face 'gh-radar-dashboard-repo))
@@ -351,6 +358,7 @@
     (define-key map (kbd "i") #'gh-radar-dashboard-open-issues)
     (define-key map (kbd "P") #'gh-radar-dashboard-open-pulls)
     (define-key map (kbd "p") #'gh-radar-dashboard-open-pulls)
+    (define-key map (kbd "N") #'gh-radar-dashboard-open-notifications)
     (define-key map (kbd "w") #'gh-radar-dashboard-browse-repo)
     (define-key map (kbd "b") #'gh-radar-dashboard-browse-repo)
     (define-key map (kbd "g") #'gh-radar-dashboard-refresh-buffer)
@@ -393,6 +401,7 @@
       (kbd "i") #'gh-radar-dashboard-open-issues
       (kbd "P") #'gh-radar-dashboard-open-pulls
       (kbd "p") #'gh-radar-dashboard-open-pulls
+      (kbd "N") #'gh-radar-dashboard-open-notifications
       (kbd "w") #'gh-radar-dashboard-browse-repo
       (kbd "b") #'gh-radar-dashboard-browse-repo
       (kbd "g") #'gh-radar-dashboard-refresh-buffer
