@@ -1,4 +1,4 @@
-;;; gh-radal-state.el --- State management and delta tracking -*- lexical-binding: t; -*-
+;;; gh-radar-state.el --- State management and delta tracking -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
@@ -9,31 +9,31 @@
 
 ;;; Code:
 
-(require 'gh-radal-config)
+(require 'gh-radar-config)
 
-(defvar gh-radal-state-data nil
+(defvar gh-radar-state-data nil
   "Current state alist mapping repository names to their radar metrics.
 Each item is of the form:
   (REPO . (:owner STR :name STR :issues INT :pr INT
            :new-issues INT :new-pr INT :timestamp TIME))")
 
-(defvar gh-radal-update-hook nil
-  "Hook run after gh-radal finishes updating state.
-Each function is called with the full `gh-radal-state-data` alist.")
+(defvar gh-radar-update-hook nil
+  "Hook run after gh-radar finishes updating state.
+Each function is called with the full `gh-radar-state-data` alist.")
 
-(defun gh-radal-state-get (repo)
+(defun gh-radar-state-get (repo)
   "Retrieve cached metrics plist for REPO (\"owner/name\")."
-  (cdr (assoc repo gh-radal-state-data)))
+  (cdr (assoc repo gh-radar-state-data)))
 
-(defun gh-radal-state-update (new-records)
-  "Update `gh-radal-state-data` with NEW-RECORDS and calculate deltas.
+(defun gh-radar-state-update (new-records)
+  "Update `gh-radar-state-data` with NEW-RECORDS and calculate deltas.
 NEW-RECORDS is a list of plists containing :repo, :owner, :name, :issues, :pr."
   (let ((updated-alist nil)
         (total-new-issues 0)
         (total-new-prs 0))
     (dolist (item new-records)
       (let* ((repo (plist-get item :repo))
-             (old-item (gh-radal-state-get repo))
+             (old-item (gh-radar-state-get repo))
              (old-issues (or (plist-get old-item :issues) 0))
              (old-prs (or (plist-get old-item :pr) 0))
              (cur-issues (or (plist-get item :issues) 0))
@@ -52,17 +52,17 @@ NEW-RECORDS is a list of plists containing :repo, :owner, :name, :issues, :pr."
                           :new-pr (if old-item new-prs 0)
                           :timestamp (current-time)))
               updated-alist)))
-    (setq gh-radal-state-data (nreverse updated-alist))
-    (when (and gh-radal-notify-on-new (> (+ total-new-issues total-new-prs) 0))
-      (message "[gh-radal] New activity detected: +%d issues, +%d pull requests"
+    (setq gh-radar-state-data (nreverse updated-alist))
+    (when (and gh-radar-notify-on-new (> (+ total-new-issues total-new-prs) 0))
+      (message "[gh-radar] New activity detected: +%d issues, +%d pull requests"
                total-new-issues total-new-prs))
-    (run-hook-with-args 'gh-radal-update-hook gh-radal-state-data)
+    (run-hook-with-args 'gh-radar-update-hook gh-radar-state-data)
     (force-mode-line-update t)))
 
-(defun gh-radal-state-clear ()
+(defun gh-radar-state-clear ()
   "Reset all cached radar metrics."
-  (setq gh-radal-state-data nil)
+  (setq gh-radar-state-data nil)
   (force-mode-line-update t))
 
-(provide 'gh-radal-state)
-;;; gh-radal-state.el ends here
+(provide 'gh-radar-state)
+;;; gh-radar-state.el ends here
