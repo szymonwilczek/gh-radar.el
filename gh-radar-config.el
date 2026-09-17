@@ -42,6 +42,44 @@ Default is 600 seconds (10 minutes)."
   :type 'boolean
   :group 'gh-radar)
 
+(declare-function notifications-notify "notifications")
+
+(defcustom gh-radar-desktop-notification-backend nil
+  "Backend for desktop system notifications when new activity is detected.
+Supported values:
+- `nil': Disabled (default).
+- `notifications' or `notifications-notify': Use Emacs built-in
+  `notifications-notify' (D-Bus / libnotify).
+- `notify-send': Use external `notify-send' CLI executable.
+- A custom function taking two arguments: (TITLE BODY)."
+  :type '(choice (const :tag "Disabled" nil)
+                 (const :tag "Built-in notifications-notify (D-Bus)" notifications)
+                 (const :tag "External notify-send command" notify-send)
+                 (function :tag "Custom notification function"))
+  :group 'gh-radar)
+
+(defun gh-radar-notify-desktop (title body)
+  "Send desktop system notification with TITLE and BODY according to backend."
+  (pcase gh-radar-desktop-notification-backend
+    ((or 'notifications 'notifications-notify 'libnotify)
+     (when (require 'notifications nil t)
+       (ignore-errors
+         (notifications-notify
+          :title title
+          :body body
+          :app-name "gh-radar"
+          :app-icon "emacs"))))
+    ('notify-send
+     (when (executable-find "notify-send")
+       (start-process "gh-radar-notify" nil "notify-send"
+                      "-a" "gh-radar"
+                      "-i" "emacs"
+                      title body)))
+    ((pred functionp)
+     (ignore-errors
+       (funcall gh-radar-desktop-notification-backend title body)))
+    (_ nil)))
+
 (defcustom gh-radar-show-prefix nil
   "Whether to display the GitHub icon or prefix before the counters.
 Defaults to nil."

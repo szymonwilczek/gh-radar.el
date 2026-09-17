@@ -162,8 +162,10 @@ Each function is called with the full `gh-radar-state-data` alist.")
               updated-alist)))
     (setq gh-radar-state-data (nreverse updated-alist))
     (when (and gh-radar-notify-on-new (> (+ newly-detected-issues newly-detected-prs) 0))
-      (message "[gh-radar] New activity detected: +%d issues, +%d pull requests"
-               newly-detected-issues newly-detected-prs))
+      (let ((msg (format "New activity detected: +%d issues, +%d pull requests"
+                         newly-detected-issues newly-detected-prs)))
+        (message "[gh-radar] %s" msg)
+        (gh-radar-notify-desktop "GitHub Radar" msg)))
     (run-hook-with-args 'gh-radar-update-hook gh-radar-state-data)
     (force-mode-line-update t)))
 
@@ -255,7 +257,9 @@ Each function is called with the full `gh-radar-state-data` alist.")
                 :timestamp (current-time)
                 :items items))
     (when (and gh-radar-notify-on-new (> new-count 0))
-      (message "[gh-radar] New notifications detected: +%d unread" new-count))
+      (let ((msg (format "New notifications detected: +%d unread" new-count)))
+        (message "[gh-radar] %s" msg)
+        (gh-radar-notify-desktop "GitHub Notifications" msg)))
     (run-hook-with-args 'gh-radar-update-hook gh-radar-state-data)
     (force-mode-line-update t)))
 
