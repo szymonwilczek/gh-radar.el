@@ -382,6 +382,8 @@
       (kbd "P") #'gh-radar-dashboard-open-pulls
       (kbd "n") #'gh-radar-dashboard-open-notifications
       (kbd "N") #'gh-radar-dashboard-open-notifications
+      (kbd "w") nil
+      (kbd "b") nil
       (kbd "g") #'gh-radar-dashboard-refresh-buffer
       (kbd "r") #'gh-radar-dashboard-refresh-buffer
       (kbd "?") #'gh-radar-dashboard-help
