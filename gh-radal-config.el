@@ -46,5 +46,30 @@ Default is 600 seconds (10 minutes)."
   :type 'boolean
   :group 'gh-radal)
 
+(defface gh-radal-prefix-face
+  '((t :inherit font-lock-comment-face :weight bold))
+  "Face for the radar prefix or icon."
+  :group 'gh-radal)
+
+(defface gh-radal-repo-face
+  '((t :inherit default :weight bold))
+  "Face for repository labels."
+  :group 'gh-radal)
+
+(defface gh-radal-issue-face
+  '((t :inherit warning))
+  "Face for open issues count."
+  :group 'gh-radal)
+
+(defface gh-radal-pr-face
+  '((t :inherit font-lock-builtin-face))
+  "Face for open pull requests count."
+  :group 'gh-radal)
+
+(defface gh-radal-new-face
+  '((t :inherit error :weight bold))
+  "Face for newly detected issues or pull requests."
+  :group 'gh-radal)
+
 (provide 'gh-radal-config)
 ;;; gh-radal-config.el ends here
