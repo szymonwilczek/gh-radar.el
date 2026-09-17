@@ -345,7 +345,7 @@
     (define-key map (kbd "C-c g") #'gh-radar-dashboard-refresh-buffer)
     (define-key map (kbd "C-c C-g") #'gh-radar-dashboard-refresh-buffer)
     (define-key map (kbd "?") #'gh-radar-dashboard-help)
-    (define-key map (kbd "q") #'quit-window)
+    (define-key map (kbd "q") #'gh-radar-dashboard-quit)
     (define-key map [mouse-1] #'gh-radar-dashboard-open-at-point)
     map)
   "Keymap for `gh-radar-dashboard-mode'.")
@@ -387,18 +387,47 @@
       (kbd "g") #'gh-radar-dashboard-refresh-buffer
       (kbd "r") #'gh-radar-dashboard-refresh-buffer
       (kbd "?") #'gh-radar-dashboard-help
-      (kbd "q") #'quit-window)))
+      (kbd "q") #'gh-radar-dashboard-quit)))
+
+(defvar-local gh-radar-dashboard--prev-win-conf nil
+  "Saved window configuration prior to opening dashboard fullscreen.")
+
+(defun gh-radar-dashboard-quit ()
+  "Quit the dashboard window and restore previous layout."
+  (interactive)
+  (let ((conf gh-radar-dashboard--prev-win-conf)
+        (buf (current-buffer)))
+    (if (and conf (window-configuration-p conf))
+        (progn
+          (set-window-configuration conf)
+          (when (buffer-live-p buf)
+            (bury-buffer buf)))
+      (quit-window t))))
 
 ;;;###autoload
 (defun gh-radar-dashboard ()
   "Open the interactive gh-radar dashboard buffer."
   (interactive)
-  (let ((buf (get-buffer-create "*gh-radar*")))
+  (let* ((buf (get-buffer-create "*gh-radar*"))
+         (orig-conf (unless (eq (current-buffer) buf)
+                      (current-window-configuration))))
     (with-current-buffer buf
       (unless (derived-mode-p 'gh-radar-dashboard-mode)
         (gh-radar-dashboard-mode))
+      (when orig-conf
+        (setq gh-radar-dashboard--prev-win-conf orig-conf))
       (gh-radar-dashboard-render))
-    (pop-to-buffer buf)))
+    (pcase gh-radar-dashboard-display-style
+      ('full-window
+       (delete-other-windows)
+       (switch-to-buffer buf))
+      ('same-window
+       (switch-to-buffer buf))
+      ('pop-to-buffer
+       (pop-to-buffer buf))
+      (_
+       (delete-other-windows)
+       (switch-to-buffer buf)))))
 
 (defun gh-radar-dashboard--auto-refresh-buffer (&rest _)
   "Update *gh-radar* buffer if currently alive."
