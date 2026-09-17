@@ -56,11 +56,13 @@ NEW-RECORDS is a list of plists containing :repo, :owner, :name, :issues, :pr."
     (when (and gh-radal-notify-on-new (> (+ total-new-issues total-new-prs) 0))
       (message "[gh-radal] New activity detected: +%d issues, +%d pull requests"
                total-new-issues total-new-prs))
-    (run-hook-with-args 'gh-radal-update-hook gh-radal-state-data)))
+    (run-hook-with-args 'gh-radal-update-hook gh-radal-state-data)
+    (force-mode-line-update t)))
 
 (defun gh-radal-state-clear ()
   "Reset all cached radar metrics."
-  (setq gh-radal-state-data nil))
+  (setq gh-radal-state-data nil)
+  (force-mode-line-update t))
 
 (provide 'gh-radal-state)
 ;;; gh-radal-state.el ends here
