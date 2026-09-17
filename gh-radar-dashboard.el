@@ -218,7 +218,7 @@
 (defun gh-radar-dashboard--insert-row (item)
   "Insert a single repository entry for ITEM ((REPO . PLIST)) and record bounds."
   (let* ((repo (car item))
-         (data (cdr item))
+         (data (append (list :repo repo) (cdr item)))
          (issues (or (plist-get data :issues) 0))
          (prs (or (plist-get data :pr) 0))
          (new-issues (or (plist-get data :new-issues) 0))

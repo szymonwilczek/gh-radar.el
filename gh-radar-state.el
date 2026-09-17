@@ -49,7 +49,8 @@ NEW-RECORDS is a list of plists containing :repo, :owner, :name, :issues, :pr."
           (setq total-new-issues (+ total-new-issues new-issues))
           (setq total-new-prs (+ total-new-prs new-prs)))
         (push (cons repo
-                    (list :owner (plist-get item :owner)
+                    (list :repo repo
+                          :owner (plist-get item :owner)
                           :name (plist-get item :name)
                           :issues cur-issues
                           :pr cur-prs
