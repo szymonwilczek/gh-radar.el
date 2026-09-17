@@ -15,12 +15,12 @@
 (require 'parse-time)
 (require 'gh-radar-config)
 (require 'gh-radar-state)
+(require 'gh-radar-process)
+
+(autoload 'gh-radar-settings "gh-radar-settings")
 
 (declare-function evil-define-key "evil-core" (state keymap key def &rest bindings))
 (declare-function evil-make-overriding-map "evil-core" (keymap &optional state copy))
-(declare-function gh-radar-process-fetch "gh-radar-process" (&optional callback))
-
-(declare-function gh-radar-settings "gh-radar-settings" ())
 
 (defcustom gh-radar-dashboard-max-width 100
   "Maximum character width for the radar dashboard layout."
