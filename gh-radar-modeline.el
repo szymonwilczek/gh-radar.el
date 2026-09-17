@@ -14,6 +14,7 @@
 
 (declare-function nerd-icons-octicon "nerd-icons")
 (declare-function gh-radar-refresh "gh-radar")
+(declare-function gh-radar-dashboard "gh-radar-dashboard")
 
 (defun gh-radar-modeline--icon (name fallback)
   "Resolve nerd-icon NAME or return FALLBACK string."
@@ -59,7 +60,7 @@
              (issue-icon (gh-radar-modeline--icon "nf-oct-issue_opened" "#"))
              (pr-icon (gh-radar-modeline--icon "nf-oct-git_pull_request" "PR"))
              (map (let ((km (make-sparse-keymap)))
-                    (define-key km [mode-line mouse-1] (lambda () (interactive) (message (gh-radar-modeline--tooltip))))
+                    (define-key km [mode-line mouse-1] #'gh-radar-dashboard)
                     km))
              (str (format " %s%s %d%s %s %d%s"
                           (or prefix-str "")
