@@ -116,7 +116,7 @@
             (propertize "General Settings" 'face 'gh-radar-dashboard-section-header)
             "\n\n"
             "    [n]  "
-            (propertize "GitHub Notifications Inbox: " 'face 'gh-radar-dashboard-unread-title)
+            (propertize (format "%-30s" "GitHub Notifications Inbox:") 'face 'gh-radar-dashboard-unread-title)
             (if enabled
                 (propertize "[ ENABLED ]" 'face 'gh-radar-settings-on)
               (propertize "[ DISABLED ]" 'face 'gh-radar-settings-off))
@@ -130,7 +130,7 @@
          (is-new (memq mode '(new only-new)))
          (beg (point)))
     (insert "    [c]  "
-            (propertize "Modeline Count Mode:          " 'face 'gh-radar-dashboard-unread-title)
+            (propertize (format "%-30s" "Modeline Count Mode:") 'face 'gh-radar-dashboard-unread-title)
             (if is-new
                 (propertize "[ ONLY NEW (+Delta) ]" 'face 'gh-radar-settings-on)
               (propertize "[ ALL (Total + New) ]" 'face 'gh-radar-settings-off))
@@ -143,7 +143,7 @@
   (let* ((bell (gh-radar-cache-get-setting :bell-modeline gh-radar-bell-modeline))
          (beg (point)))
     (insert "    [b]  "
-            (propertize "Modeline Bell Style:          " 'face 'gh-radar-dashboard-unread-title)
+            (propertize (format "%-30s" "Modeline Bell Style:") 'face 'gh-radar-dashboard-unread-title)
             (if bell
                 (propertize "[ ENABLED ]" 'face 'gh-radar-settings-on)
               (propertize "[ DISABLED ]" 'face 'gh-radar-settings-off))
@@ -156,7 +156,7 @@
   (let* ((mode (gh-radar-cache-get-setting :hide-zero-counts gh-radar-hide-zero-counts))
          (beg (point)))
     (insert "    [z]  "
-            (propertize "Hide Zero Counts:             " 'face 'gh-radar-dashboard-unread-title)
+            (propertize (format "%-30s" "Hide Zero Counts:") 'face 'gh-radar-dashboard-unread-title)
             (pcase mode
               ('t (propertize "[ ALL ]" 'face 'gh-radar-settings-on))
               ('(inbox) (propertize "[ INBOX ONLY ]" 'face 'gh-radar-settings-on))
