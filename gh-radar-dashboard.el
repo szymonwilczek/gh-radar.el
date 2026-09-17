@@ -278,18 +278,32 @@
   (let* ((width (gh-radar-dashboard-width))
          (tot-issues 0)
          (tot-prs 0)
+         (tot-new-issues 0)
+         (tot-new-prs 0)
          (tot-repos (length gh-radar-state-data))
          (inbox-cnt (when (and gh-radar-track-notifications gh-radar-state-notifications)
                       (or (plist-get gh-radar-state-notifications :count) 0)))
+         (inbox-new (when (and gh-radar-track-notifications gh-radar-state-notifications)
+                      (or (plist-get gh-radar-state-notifications :new) 0)))
+         (only-new (memq gh-radar-count-display '(new only-new)))
          (meta-parts (list (format "Tracking %d repositories" tot-repos))))
     (dolist (item gh-radar-state-data)
       (let ((data (cdr item)))
         (setq tot-issues (+ tot-issues (or (plist-get data :issues) 0)))
-        (setq tot-prs (+ tot-prs (or (plist-get data :pr) 0)))))
+        (setq tot-prs (+ tot-prs (or (plist-get data :pr) 0)))
+        (setq tot-new-issues (+ tot-new-issues (or (plist-get data :new-issues) 0)))
+        (setq tot-new-prs (+ tot-new-prs (or (plist-get data :new-pr) 0)))))
     (when inbox-cnt
-      (push (format "%d unread notifications" inbox-cnt) meta-parts))
-    (push (format "%d open issues" tot-issues) meta-parts)
-    (push (format "%d open PRs" tot-prs) meta-parts)
+      (push (if only-new
+                (format "%s%d unread notifications" (if (> (or inbox-new 0) 0) "+" "") (or inbox-new 0))
+              (format "%d unread notifications" inbox-cnt))
+            meta-parts))
+    (if only-new
+        (progn
+          (push (format "%s%d new issues" (if (> tot-new-issues 0) "+" "") tot-new-issues) meta-parts)
+          (push (format "%s%d new PRs" (if (> tot-new-prs 0) "+" "") tot-new-prs) meta-parts))
+      (push (format "%d open issues" tot-issues) meta-parts)
+      (push (format "%d open PRs" tot-prs) meta-parts))
     (insert "  "
             (propertize "gh-radar" 'face 'gh-radar-dashboard-title)
             "\n"
@@ -314,27 +328,41 @@
          (new-issues (or (plist-get data :new-issues) 0))
          (new-prs (or (plist-get data :new-pr) 0))
          (time (plist-get data :timestamp))
+         (only-new (memq gh-radar-count-display '(new only-new)))
          (repo-icon (gh-radar-dashboard--icon "nf-oct-repo" "GH" 'gh-radar-dashboard-repo))
          (issue-icon (gh-radar-dashboard--icon "nf-oct-issue_opened" "#" 'gh-radar-issue-face))
          (pr-icon (gh-radar-dashboard--icon "nf-oct-git_pull_request" "PR" 'gh-radar-pr-face))
          (beg (point)))
     (insert "  " repo-icon "  " (propertize repo 'face 'gh-radar-dashboard-repo) "\n")
-    (insert "     "
-            issue-icon " "
-            (propertize (format "%d issues" issues) 'face 'gh-radar-issue-face)
-            (if (> new-issues 0)
-                (format " %s" (propertize (format "(+%d)" new-issues) 'face 'gh-radar-new-face))
-              "")
-            "    "
-            pr-icon " "
-            (propertize (format "%d PRs" prs) 'face 'gh-radar-pr-face)
-            (if (> new-prs 0)
-                (format " %s" (propertize (format "(+%d)" new-prs) 'face 'gh-radar-new-face))
-              "")
-            "    "
-            (propertize (format "· updated %s" (gh-radar-dashboard--time-ago time))
-                        'face 'gh-radar-dashboard-meta)
-            "\n\n")
+    (if only-new
+        (insert "     "
+                issue-icon " "
+                (propertize (format "%s%d new issues" (if (> new-issues 0) "+" "") new-issues)
+                            'face (if (> new-issues 0) 'gh-radar-new-face 'gh-radar-issue-face))
+                "    "
+                pr-icon " "
+                (propertize (format "%s%d new PRs" (if (> new-prs 0) "+" "") new-prs)
+                            'face (if (> new-prs 0) 'gh-radar-new-face 'gh-radar-pr-face))
+                "    "
+                (propertize (format "· updated %s" (gh-radar-dashboard--time-ago time))
+                            'face 'gh-radar-dashboard-meta)
+                "\n\n")
+      (insert "     "
+              issue-icon " "
+              (propertize (format "%d issues" issues) 'face 'gh-radar-issue-face)
+              (if (> new-issues 0)
+                  (format " %s" (propertize (format "(+%d)" new-issues) 'face 'gh-radar-new-face))
+                "")
+              "    "
+              pr-icon " "
+              (propertize (format "%d PRs" prs) 'face 'gh-radar-pr-face)
+              (if (> new-prs 0)
+                  (format " %s" (propertize (format "(+%d)" new-prs) 'face 'gh-radar-new-face))
+                "")
+              "    "
+              (propertize (format "· updated %s" (gh-radar-dashboard--time-ago time))
+                          'face 'gh-radar-dashboard-meta)
+              "\n\n"))
     (let ((end (point)))
       (put-text-property beg end 'gh-radar-item data)
       (push (list beg end data) gh-radar-dashboard--rows))))
