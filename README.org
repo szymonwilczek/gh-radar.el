@@ -1,7 +1,7 @@
 #+TITLE: gh-radar.el
 #+AUTHOR: Szymon Wilczek
 
-Tracks open issue and pull request counts for specified GitHub repositories using the =gh= CLI and GraphQL.
+Tracks open issue, pull request counts, and unread notifications using the =gh= CLI.
 
 * Installation
 
@@ -13,6 +13,7 @@ Tracks open issue and pull request counts for specified GitHub repositories usin
         '(("szymonwilczek/dotfiles" "issues" "pr")
           ("szymonwilczek/bufferline.el" "issues")
           ("szymonwilczek/gh-radar.el" "pr")))
+  (setq gh-radar-track-notifications t)
   (setq gh-radar-interval 600)
   (gh-radar-mode 1))
 #+end_src
@@ -20,6 +21,7 @@ Tracks open issue and pull request counts for specified GitHub repositories usin
 * Configuration
 
 - =gh-radar-repos=: List of repositories and targets: =("owner/repo" "issues" "pr")=, =("owner/repo" "issues")=, or =("owner/repo" "pr")=.
+- =gh-radar-track-notifications=: Track unread notifications from GitHub inbox (default: =t=).
 - =gh-radar-interval=: Background polling frequency in seconds (default: 600).
 - =gh-radar-gh-executable=: Path to =gh= binary (default: ="gh"=).
 - =gh-radar-show-prefix=: Display GitHub prefix icon before counters (default: =nil=).
@@ -34,6 +36,7 @@ Tracks open issue and pull request counts for specified GitHub repositories usin
 * Commands
 
 - =gh-radar-dashboard=: Open dedicated interactive dashboard buffer.
+- =gh-radar-dashboard-open-notifications=: Open GitHub notifications in browser.
 - =gh-radar-refresh=: Trigger asynchronous API query.
 - =gh-radar-browse=: Open repository issues or pull requests in browser.
 
