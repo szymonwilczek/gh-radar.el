@@ -47,48 +47,67 @@
      (message "[gh-radar] Failed to parse API response: %s" err)
      nil)))
 
-(defun gh-radar-process-fetch (&optional callback)
-  "Trigger asynchronous fetch for `gh-radar-repos`.
-Calls optional CALLBACK with updated state data on success."
+(defun gh-radar-process-fetch-repos (&optional callback)
+  "Trigger asynchronous GraphQL fetch for `gh-radar-repos`.
+Calls optional CALLBACK with updated state data on completion."
   (when (and gh-radar-process--current (process-live-p gh-radar-process--current))
     (delete-process gh-radar-process--current))
-  (when-let* ((built (gh-radar-query-build gh-radar-repos)))
-    (let* ((default-directory (expand-file-name "~/"))
-           (query-str (car built))
-           (alias-map (cdr built))
-           (stdout-buf (generate-new-buffer " *gh-radar-output*"))
-           (stderr-buf (generate-new-buffer " *gh-radar-stderr*"))
-           (cmd (list gh-radar-gh-executable "api" "graphql" "-f" (concat "query=" query-str)))
-           (process-environment (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
-      (setq gh-radar-process--current
-            (make-process
-             :name "gh-radar"
-             :buffer stdout-buf
-             :stderr stderr-buf
-             :connection-type 'pipe
-             :command cmd
-             :noquery t
-             :sentinel
-             (lambda (proc event)
-               (when (memq (process-status proc) '(exit signal))
-                 (let ((status (process-exit-status proc)))
-                   (if (zerop status)
-                       (with-current-buffer (process-buffer proc)
-                         (let* ((output (buffer-string))
-                                (records (gh-radar-process--parse-response output alias-map)))
-                           (when records
-                             (gh-radar-state-update records)
-                             (when callback (funcall callback gh-radar-state-data)))))
-                     (let ((err-msg (when (buffer-live-p stderr-buf)
-                                      (with-current-buffer stderr-buf
-                                        (string-trim (buffer-string))))))
-                       (message "[gh-radar] gh api failed (code %d): %s %s"
-                                status (string-trim event) (or err-msg "")))))
-                 (when (buffer-live-p (process-buffer proc))
-                   (kill-buffer (process-buffer proc)))
-                 (when (buffer-live-p stderr-buf)
-                   (kill-buffer stderr-buf))
-                 (setq gh-radar-process--current nil))))))))
+  (if-let* ((built (gh-radar-query-build gh-radar-repos)))
+      (let* ((default-directory (expand-file-name "~/"))
+             (query-str (car built))
+             (alias-map (cdr built))
+             (stdout-buf (generate-new-buffer " *gh-radar-output*"))
+             (stderr-buf (generate-new-buffer " *gh-radar-stderr*"))
+             (cmd (list gh-radar-gh-executable "api" "graphql" "-f" (concat "query=" query-str)))
+             (process-environment (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
+        (setq gh-radar-process--current
+              (make-process
+               :name "gh-radar"
+               :buffer stdout-buf
+               :stderr stderr-buf
+               :connection-type 'pipe
+               :command cmd
+               :noquery t
+               :sentinel
+               (lambda (proc event)
+                 (when (memq (process-status proc) '(exit signal))
+                   (let ((status (process-exit-status proc)))
+                     (if (zerop status)
+                         (with-current-buffer (process-buffer proc)
+                           (let* ((output (buffer-string))
+                                  (records (gh-radar-process--parse-response output alias-map)))
+                             (when records
+                               (gh-radar-state-update records))
+                             (when callback (funcall callback gh-radar-state-data))))
+                       (let ((err-msg (when (buffer-live-p stderr-buf)
+                                        (with-current-buffer stderr-buf
+                                          (string-trim (buffer-string))))))
+                         (message "[gh-radar] gh api failed (code %d): %s %s"
+                                  status (string-trim event) (or err-msg "")))
+                       (when callback (funcall callback nil))))
+                   (when (buffer-live-p (process-buffer proc))
+                     (kill-buffer (process-buffer proc)))
+                   (when (buffer-live-p stderr-buf)
+                     (kill-buffer stderr-buf))
+                   (setq gh-radar-process--current nil))))))
+    (when callback (funcall callback nil))))
+
+(defun gh-radar-process-fetch (&optional callback)
+  "Trigger asynchronous fetch for repository metrics and notifications.
+Calls optional CALLBACK with state data when all fetches complete."
+  (let* ((pending 0)
+         (on-complete (lambda (&rest _)
+                        (setq pending (1- pending))
+                        (when (and (<= pending 0) callback)
+                          (funcall callback gh-radar-state-data)))))
+    (when gh-radar-track-notifications
+      (setq pending (1+ pending))
+      (gh-radar-process-fetch-notifications on-complete))
+    (when gh-radar-repos
+      (setq pending (1+ pending))
+      (gh-radar-process-fetch-repos on-complete))
+    (when (and (zerop pending) callback)
+      (funcall callback gh-radar-state-data))))
 
 (defvar gh-radar-process--notifications nil
   "Current active gh-radar notifications process instance.")
@@ -132,7 +151,8 @@ Calls optional CALLBACK with updated notification state on success."
                                     (with-current-buffer stderr-buf
                                       (string-trim (buffer-string))))))
                      (message "[gh-radar] notifications fetch failed (code %d): %s %s"
-                              status (string-trim event) (or err-msg "")))))
+                              status (string-trim event) (or err-msg "")))
+                   (when callback (funcall callback nil))))
                (when (buffer-live-p (process-buffer proc))
                  (kill-buffer (process-buffer proc)))
                (when (buffer-live-p stderr-buf)
