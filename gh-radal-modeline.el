@@ -25,7 +25,7 @@
   "Construct detailed tooltip text for current radar state."
   (if (null gh-radal-state-data)
       "gh-radal: No data (click to refresh)"
-    (let ((lines '("gh-radal: Monitored Repositories\n---------------------------------")))
+    (let ((lines nil))
       (dolist (item gh-radal-state-data)
         (let* ((repo (car item))
                (data (cdr item))
@@ -37,7 +37,8 @@
                         repo issues (if (> new-i 0) (format " (+%d)" new-i) "")
                         prs (if (> new-p 0) (format " (+%d)" new-p) ""))
                 lines)))
-      (string-join (nreverse lines) "\n"))))
+      (concat "gh-radal: Monitored Repositories\n---------------------------------\n"
+              (string-join (nreverse lines) "\n")))))
 
 (defun gh-radal-modeline-format ()
   "Format `gh-radal-state-data` into a propertized string for the mode-line."
