@@ -47,7 +47,7 @@ Default is 600 seconds (10 minutes)."
 (defcustom gh-radar-desktop-notification-backend nil
   "Backend for desktop system notifications when new activity is detected.
 Supported values:
-- `nil': Disabled (default).
+- nil: Disabled (default).
 - `notifications' or `notifications-notify': Use Emacs built-in
   `notifications-notify' (D-Bus / libnotify).
 - `notify-send': Use external `notify-send' CLI executable.
