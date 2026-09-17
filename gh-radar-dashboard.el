@@ -122,5 +122,53 @@
       (goto-char (nth 0 prev))
       (gh-radar-dashboard--update-highlight))))
 
+(defun gh-radar-dashboard-current-repo ()
+  "Return the repository plist for the row at point, or nil."
+  (nth 2 (gh-radar-dashboard--row-at-point)))
+
+(defun gh-radar-dashboard-open-issues ()
+  "Open issues for the repository at point using Octo or browser."
+  (interactive)
+  (if-let* ((item (gh-radar-dashboard-current-repo))
+            (owner (plist-get item :owner))
+            (name (plist-get item :name)))
+      (if (fboundp 'octo-dashboard-open)
+          (octo-dashboard-open owner name 'issues)
+        (browse-url (format "https://github.com/%s/%s/issues" owner name)))
+    (user-error "No repository at point")))
+
+(defun gh-radar-dashboard-open-pulls ()
+  "Open pull requests for the repository at point using Octo or browser."
+  (interactive)
+  (if-let* ((item (gh-radar-dashboard-current-repo))
+            (owner (plist-get item :owner))
+            (name (plist-get item :name)))
+      (if (fboundp 'octo-dashboard-open)
+          (octo-dashboard-open owner name 'pulls)
+        (browse-url (format "https://github.com/%s/%s/pulls" owner name)))
+    (user-error "No repository at point")))
+
+(defun gh-radar-dashboard-browse-repo ()
+  "Open repository at point in web browser."
+  (interactive)
+  (if-let* ((item (gh-radar-dashboard-current-repo))
+            (repo (plist-get item :repo)))
+      (browse-url (format "https://github.com/%s" repo))
+    (user-error "No repository at point")))
+
+(defun gh-radar-dashboard-open-at-point ()
+  "Open issues, pulls, or browser for the repository at point."
+  (interactive)
+  (if-let* ((item (gh-radar-dashboard-current-repo))
+            (repo (plist-get item :repo)))
+      (let* ((choice (completing-read (format "Action for %s: " repo)
+                                      '("issues" "pulls" "browser")
+                                      nil t "issues")))
+        (pcase choice
+          ("issues" (gh-radar-dashboard-open-issues))
+          ("pulls" (gh-radar-dashboard-open-pulls))
+          ("browser" (gh-radar-dashboard-browse-repo))))
+    (user-error "No repository at point")))
+
 (provide 'gh-radar-dashboard)
 ;;; gh-radar-dashboard.el ends here
