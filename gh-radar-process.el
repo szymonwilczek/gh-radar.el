@@ -1,4 +1,4 @@
-;;; gh-radal-process.el --- Asynchronous gh CLI invocation -*- lexical-binding: t; -*-
+;;; gh-radar-process.el --- Asynchronous gh CLI invocation -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
@@ -10,14 +10,14 @@
 ;;; Code:
 
 (require 'json)
-(require 'gh-radal-config)
-(require 'gh-radal-query)
-(require 'gh-radal-state)
+(require 'gh-radar-config)
+(require 'gh-radar-query)
+(require 'gh-radar-state)
 
-(defvar gh-radal-process--current nil
-  "Current active gh-radal process instance.")
+(defvar gh-radar-process--current nil
+  "Current active gh-radar process instance.")
 
-(defun gh-radal-process--parse-response (raw-json alias-map)
+(defun gh-radar-process--parse-response (raw-json alias-map)
   "Parse RAW-JSON string from GitHub API according to ALIAS-MAP."
   (condition-case err
       (let* ((parsed (if (fboundp 'json-parse-string)
@@ -44,24 +44,24 @@
                         records))))))
         (nreverse records))
     (error
-     (message "[gh-radal] Failed to parse API response: %s" err)
+     (message "[gh-radar] Failed to parse API response: %s" err)
      nil)))
 
-(defun gh-radal-process-fetch (&optional callback)
-  "Trigger asynchronous fetch for `gh-radal-repos`.
+(defun gh-radar-process-fetch (&optional callback)
+  "Trigger asynchronous fetch for `gh-radar-repos`.
 Calls optional CALLBACK with updated state data on success."
-  (when (and gh-radal-process--current (process-live-p gh-radal-process--current))
-    (delete-process gh-radal-process--current))
-  (when-let* ((built (gh-radal-query-build gh-radal-repos)))
+  (when (and gh-radar-process--current (process-live-p gh-radar-process--current))
+    (delete-process gh-radar-process--current))
+  (when-let* ((built (gh-radar-query-build gh-radar-repos)))
     (let* ((query-str (car built))
            (alias-map (cdr built))
-           (stdout-buf (generate-new-buffer " *gh-radal-output*"))
-           (stderr-buf (generate-new-buffer " *gh-radal-stderr*"))
-           (cmd (list gh-radal-gh-executable "api" "graphql" "-f" (concat "query=" query-str)))
+           (stdout-buf (generate-new-buffer " *gh-radar-output*"))
+           (stderr-buf (generate-new-buffer " *gh-radar-stderr*"))
+           (cmd (list gh-radar-gh-executable "api" "graphql" "-f" (concat "query=" query-str)))
            (process-environment (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
-      (setq gh-radal-process--current
+      (setq gh-radar-process--current
             (make-process
-             :name "gh-radal"
+             :name "gh-radar"
              :buffer stdout-buf
              :stderr stderr-buf
              :connection-type 'pipe
@@ -74,20 +74,20 @@ Calls optional CALLBACK with updated state data on success."
                    (if (zerop status)
                        (with-current-buffer (process-buffer proc)
                          (let* ((output (buffer-string))
-                                (records (gh-radal-process--parse-response output alias-map)))
+                                (records (gh-radar-process--parse-response output alias-map)))
                            (when records
-                             (gh-radal-state-update records)
-                             (when callback (funcall callback gh-radal-state-data)))))
+                             (gh-radar-state-update records)
+                             (when callback (funcall callback gh-radar-state-data)))))
                      (let ((err-msg (when (buffer-live-p stderr-buf)
                                       (with-current-buffer stderr-buf
                                         (string-trim (buffer-string))))))
-                       (message "[gh-radal] gh api failed (code %d): %s %s"
+                       (message "[gh-radar] gh api failed (code %d): %s %s"
                                 status (string-trim event) (or err-msg "")))))
                  (when (buffer-live-p (process-buffer proc))
                    (kill-buffer (process-buffer proc)))
                  (when (buffer-live-p stderr-buf)
                    (kill-buffer stderr-buf))
-                 (setq gh-radal-process--current nil))))))))
+                 (setq gh-radar-process--current nil))))))))
 
-(provide 'gh-radal-process)
-;;; gh-radal-process.el ends here
+(provide 'gh-radar-process)
+;;; gh-radar-process.el ends here
