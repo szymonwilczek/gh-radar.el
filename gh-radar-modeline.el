@@ -21,37 +21,6 @@
   "Resolve nerd-icon NAME or return FALLBACK string."
   (gh-radar-resolve-icon name fallback))
 
-(defun gh-radar-modeline--tooltip ()
-  "Construct detailed tooltip text for current radar state."
-  (if (and (null gh-radar-state-data) (null gh-radar-state-notifications))
-      "gh-radar: No data (click to refresh)"
-    (let ((lines nil))
-      (when (and gh-radar-track-notifications gh-radar-state-notifications)
-        (let* ((cnt (or (plist-get gh-radar-state-notifications :count) 0))
-               (new-cnt (or (plist-get gh-radar-state-notifications :new) 0)))
-          (push (format "Inbox: %d unread%s"
-                        cnt
-                        (if (> new-cnt 0) (format " (+%d)" new-cnt) ""))
-                lines)))
-      (when gh-radar-state-data
-        (dolist (item gh-radar-state-data)
-          (let* ((repo (car item))
-                 (data (cdr item))
-                 (issues (or (plist-get data :issues) 0))
-                 (prs (or (plist-get data :pr) 0))
-                 (new-i (or (plist-get data :new-issues) 0))
-                 (new-p (or (plist-get data :new-pr) 0)))
-            (push (format "%s: %d issues%s, %d PRs%s"
-                          repo issues (if (> new-i 0) (format " (+%d)" new-i) "")
-                          prs (if (> new-p 0) (format " (+%d)" new-p) ""))
-                  lines))))
-      (concat "gh-radar"
-              (if (memq gh-radar-count-display '(new only-new))
-                  " [mode: only new]"
-                " [mode: all]")
-              "\n---------------------------------\n"
-              (string-join (nreverse lines) "\n")))))
-
 (defun gh-radar-modeline--target-enabled-p (target)
   "Return non-nil if TARGET (\"issues\" or \"pr\") is enabled in any configured repo."
   (let* ((str-target (if (symbolp target) (symbol-name target) target))
@@ -210,8 +179,7 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
                             (string-join (nreverse parts) " "))))
           (propertize str
                       'mouse-face 'mode-line-highlight
-                      'local-map map
-                      'help-echo (gh-radar-modeline--tooltip)))))))
+                      'local-map map))))))
 
 (provide 'gh-radar-modeline)
 ;;; gh-radar-modeline.el ends here
