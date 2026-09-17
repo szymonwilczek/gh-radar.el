@@ -24,58 +24,85 @@
 
 (defun gh-radar-modeline--tooltip ()
   "Construct detailed tooltip text for current radar state."
-  (if (null gh-radar-state-data)
+  (if (and (null gh-radar-state-data) (null gh-radar-state-notifications))
       "gh-radar: No data (click to refresh)"
     (let ((lines nil))
-      (dolist (item gh-radar-state-data)
-        (let* ((repo (car item))
-               (data (cdr item))
-               (issues (or (plist-get data :issues) 0))
-               (prs (or (plist-get data :pr) 0))
-               (new-i (or (plist-get data :new-issues) 0))
-               (new-p (or (plist-get data :new-pr) 0)))
-          (push (format "%s: %d issues%s, %d PRs%s"
-                        repo issues (if (> new-i 0) (format " (+%d)" new-i) "")
-                        prs (if (> new-p 0) (format " (+%d)" new-p) ""))
+      (when (and gh-radar-track-notifications gh-radar-state-notifications)
+        (let* ((cnt (or (plist-get gh-radar-state-notifications :count) 0))
+               (new-cnt (or (plist-get gh-radar-state-notifications :new) 0)))
+          (push (format "Inbox: %d unread%s"
+                        cnt
+                        (if (> new-cnt 0) (format " (+%d)" new-cnt) ""))
                 lines)))
-      (concat "gh-radar: Monitored Repositories\n---------------------------------\n"
+      (when gh-radar-state-data
+        (dolist (item gh-radar-state-data)
+          (let* ((repo (car item))
+                 (data (cdr item))
+                 (issues (or (plist-get data :issues) 0))
+                 (prs (or (plist-get data :pr) 0))
+                 (new-i (or (plist-get data :new-issues) 0))
+                 (new-p (or (plist-get data :new-pr) 0)))
+            (push (format "%s: %d issues%s, %d PRs%s"
+                          repo issues (if (> new-i 0) (format " (+%d)" new-i) "")
+                          prs (if (> new-p 0) (format " (+%d)" new-p) ""))
+                  lines))))
+      (concat "gh-radar\n---------------------------------\n"
               (string-join (nreverse lines) "\n")))))
 
 (defun gh-radar-modeline-format ()
-  "Format `gh-radar-state-data` into a propertized string for the mode-line."
-  (when gh-radar-state-data
-    (let* ((tot-issues 0)
-           (tot-prs 0)
-           (tot-new-issues 0)
-           (tot-new-prs 0))
-      (dolist (item gh-radar-state-data)
-        (let ((data (cdr item)))
-          (setq tot-issues (+ tot-issues (or (plist-get data :issues) 0)))
-          (setq tot-prs (+ tot-prs (or (plist-get data :pr) 0)))
-          (setq tot-new-issues (+ tot-new-issues (or (plist-get data :new-issues) 0)))
-          (setq tot-new-prs (+ tot-new-prs (or (plist-get data :new-pr) 0)))))
-      (let* ((prefix-str (when gh-radar-show-prefix
-                           (format "%s  " (propertize (gh-radar-modeline--icon "nf-oct-mark_github" "GH")
-                                                      'face 'gh-radar-prefix-face))))
-             (issue-icon (gh-radar-modeline--icon "nf-oct-issue_opened" "#"))
-             (pr-icon (gh-radar-modeline--icon "nf-oct-git_pull_request" "PR"))
-             (map (let ((km (make-sparse-keymap)))
-                    (define-key km [mode-line mouse-1] #'gh-radar-dashboard)
-                    km))
-             (str (format " %s%s %d%s %s %d%s"
-                          (or prefix-str "")
+  "Format radar metrics and notifications into a mode-line string."
+  (when (or gh-radar-state-data
+            (and gh-radar-track-notifications gh-radar-state-notifications))
+    (let ((parts nil))
+      (when (and gh-radar-track-notifications gh-radar-state-notifications)
+        (let* ((inbox-icon (gh-radar-modeline--icon "nf-oct-inbox" "@"))
+               (inbox-cnt (or (plist-get gh-radar-state-notifications :count) 0))
+               (inbox-new (or (plist-get gh-radar-state-notifications :new) 0)))
+          (push (format "%s %d%s"
+                        inbox-icon inbox-cnt
+                        (if (> inbox-new 0)
+                            (propertize (format " (+%d)" inbox-new) 'face 'gh-radar-new-face)
+                          ""))
+                parts)))
+      (when gh-radar-state-data
+        (let ((tot-issues 0)
+              (tot-prs 0)
+              (tot-new-issues 0)
+              (tot-new-prs 0))
+          (dolist (item gh-radar-state-data)
+            (let ((data (cdr item)))
+              (setq tot-issues (+ tot-issues (or (plist-get data :issues) 0)))
+              (setq tot-prs (+ tot-prs (or (plist-get data :pr) 0)))
+              (setq tot-new-issues (+ tot-new-issues (or (plist-get data :new-issues) 0)))
+              (setq tot-new-prs (+ tot-new-prs (or (plist-get data :new-pr) 0)))))
+          (let ((issue-icon (gh-radar-modeline--icon "nf-oct-issue_opened" "#"))
+                (pr-icon (gh-radar-modeline--icon "nf-oct-git_pull_request" "PR")))
+            (push (format "%s %d%s"
                           issue-icon tot-issues
                           (if (> tot-new-issues 0)
                               (propertize (format " (+%d)" tot-new-issues) 'face 'gh-radar-new-face)
-                            "")
+                            ""))
+                  parts)
+            (push (format "%s %d%s"
                           pr-icon tot-prs
                           (if (> tot-new-prs 0)
                               (propertize (format " (+%d)" tot-new-prs) 'face 'gh-radar-new-face)
-                            ""))))
-        (propertize str
-                    'mouse-face 'mode-line-highlight
-                    'local-map map
-                    'help-echo (gh-radar-modeline--tooltip))))))
+                            ""))
+                  parts))))
+      (when parts
+        (let* ((prefix-str (when gh-radar-show-prefix
+                             (format "%s  " (propertize (gh-radar-modeline--icon "nf-oct-mark_github" "GH")
+                                                        'face 'gh-radar-prefix-face))))
+               (map (let ((km (make-sparse-keymap)))
+                      (define-key km [mode-line mouse-1] #'gh-radar-dashboard)
+                      km))
+               (str (format " %s%s"
+                            (or prefix-str "")
+                            (string-join (nreverse parts) " "))))
+          (propertize str
+                      'mouse-face 'mode-line-highlight
+                      'local-map map
+                      'help-echo (gh-radar-modeline--tooltip)))))))
 
 (provide 'gh-radar-modeline)
 ;;; gh-radar-modeline.el ends here
