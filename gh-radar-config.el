@@ -82,6 +82,8 @@ Defaults to \\='(inbox issues pr bell)."
               (const :tag "Bell icon" bell))
   :group 'gh-radar)
 
+(defvaralias 'gh-radar-modeline-bell 'gh-radar-bell-modeline)
+
 (defcustom gh-radar-bell-modeline nil
   "Whether to display a single aggregate bell icon in the mode-line.
 When non-nil, replaces individual mode-line icons and counters with a single
@@ -89,8 +91,6 @@ bell icon followed by the sum of all tracked notifications, issues, and PRs.
 Defaults to nil."
   :type 'boolean
   :group 'gh-radar)
-
-(defvaralias 'gh-radar-modeline-bell 'gh-radar-bell-modeline)
 
 (defcustom gh-radar-hide-zero-counts nil
   "Whether to hide mode-line segments when their count is zero.
