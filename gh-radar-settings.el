@@ -170,7 +170,7 @@
                       (propertize "ON " 'face 'gh-radar-settings-on)
                     (propertize "OFF" 'face 'gh-radar-settings-off))
                   "    "
-                  (propertize "[d/x] Remove" 'face 'gh-radar-dashboard-meta)
+                  (propertize "[d] Remove" 'face 'gh-radar-dashboard-meta)
                   "\n\n")
           (let ((end (point)))
             (push (list beg end :repo repo) gh-radar-settings--rows)))))))
