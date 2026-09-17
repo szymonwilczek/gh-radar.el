@@ -362,5 +362,25 @@
       (kbd "?") #'gh-radar-dashboard-help
       (kbd "q") #'quit-window)))
 
+;;;###autoload
+(defun gh-radar-dashboard ()
+  "Open the interactive gh-radar dashboard buffer."
+  (interactive)
+  (let ((buf (get-buffer-create "*gh-radar*")))
+    (with-current-buffer buf
+      (unless (derived-mode-p 'gh-radar-dashboard-mode)
+        (gh-radar-dashboard-mode))
+      (gh-radar-dashboard-render))
+    (pop-to-buffer buf)))
+
+(defun gh-radar-dashboard--auto-refresh-buffer (&rest _)
+  "Update *gh-radar* buffer if currently alive."
+  (when-let* ((buf (get-buffer "*gh-radar*")))
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (gh-radar-dashboard-render)))))
+
+(add-hook 'gh-radar-update-hook #'gh-radar-dashboard--auto-refresh-buffer)
+
 (provide 'gh-radar-dashboard)
 ;;; gh-radar-dashboard.el ends here
