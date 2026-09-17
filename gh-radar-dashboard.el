@@ -170,5 +170,91 @@
           ("browser" (gh-radar-dashboard-browse-repo))))
     (user-error "No repository at point")))
 
+(defun gh-radar-dashboard--insert-header ()
+  "Insert the dashboard banner, statistics, and rule."
+  (let* ((width (gh-radar-dashboard-width))
+         (tot-issues 0)
+         (tot-prs 0)
+         (tot-repos (length gh-radar-state-data)))
+    (dolist (item gh-radar-state-data)
+      (let ((data (cdr item)))
+        (setq tot-issues (+ tot-issues (or (plist-get data :issues) 0)))
+        (setq tot-prs (+ tot-prs (or (plist-get data :pr) 0)))))
+    (insert "  "
+            (propertize "gh-radar" 'face 'gh-radar-dashboard-title)
+            "\n"
+            "  "
+            (propertize (format "Tracking %d repositories · %d open issues · %d open PRs"
+                                tot-repos tot-issues tot-prs)
+                        'face 'gh-radar-dashboard-meta)
+            "\n\n"
+            "  "
+            (propertize "[g] Refresh   [RET] Open   [i] Issues   [p] PRs   [w] Web   [?] Help   [q] Quit"
+                        'face 'gh-radar-dashboard-meta)
+            "\n"
+            "  "
+            (propertize (make-string width ?─) 'face 'gh-radar-dashboard-separator)
+            "\n\n")))
+
+(defun gh-radar-dashboard--insert-row (item)
+  "Insert a single repository entry for ITEM ((REPO . PLIST)) and record bounds."
+  (let* ((repo (car item))
+         (data (cdr item))
+         (issues (or (plist-get data :issues) 0))
+         (prs (or (plist-get data :pr) 0))
+         (new-issues (or (plist-get data :new-issues) 0))
+         (new-prs (or (plist-get data :new-pr) 0))
+         (time (plist-get data :timestamp))
+         (repo-icon (gh-radar-dashboard--icon "nf-oct-repo" "GH" 'gh-radar-dashboard-repo))
+         (issue-icon (gh-radar-dashboard--icon "nf-oct-issue_opened" "#" 'gh-radar-issue-face))
+         (pr-icon (gh-radar-dashboard--icon "nf-oct-git_pull_request" "PR" 'gh-radar-pr-face))
+         (beg (point)))
+    (insert "  " repo-icon "  " (propertize repo 'face 'gh-radar-dashboard-repo) "\n")
+    (insert "     "
+            issue-icon " "
+            (propertize (format "%d issues" issues) 'face 'gh-radar-issue-face)
+            (if (> new-issues 0)
+                (format " %s" (propertize (format "(+%d)" new-issues) 'face 'gh-radar-new-face))
+              "")
+            "    "
+            pr-icon " "
+            (propertize (format "%d PRs" prs) 'face 'gh-radar-pr-face)
+            (if (> new-prs 0)
+                (format " %s" (propertize (format "(+%d)" new-prs) 'face 'gh-radar-new-face))
+              "")
+            "    "
+            (propertize (format "· updated %s" (gh-radar-dashboard--time-ago time))
+                        'face 'gh-radar-dashboard-meta)
+            "\n\n")
+    (let ((end (point)))
+      (put-text-property beg end 'gh-radar-item data)
+      (push (list beg end data) gh-radar-dashboard--rows))))
+
+(defun gh-radar-dashboard-render ()
+  "Render the whole radar dashboard buffer."
+  (let ((inhibit-read-only t)
+        (win (get-buffer-window (current-buffer)))
+        (orig-line (line-number-at-pos (point)))
+        (orig-col (current-column)))
+    (setq gh-radar-dashboard--rows nil)
+    (when (overlayp gh-radar-dashboard--highlight)
+      (delete-overlay gh-radar-dashboard--highlight))
+    (erase-buffer)
+    (gh-radar-dashboard--insert-header)
+    (if (null gh-radar-state-data)
+        (insert "  " (propertize "No repository data available. Press 'g' to refresh."
+                                 'face 'gh-radar-dashboard-meta)
+                "\n")
+      (dolist (item gh-radar-state-data)
+        (gh-radar-dashboard--insert-row item)))
+    (setq gh-radar-dashboard--rows (nreverse gh-radar-dashboard--rows))
+    (goto-char (point-min))
+    (forward-line (1- orig-line))
+    (move-to-column orig-col)
+    (when (and gh-radar-dashboard--rows (null (gh-radar-dashboard--row-at-point)))
+      (goto-char (car (car gh-radar-dashboard--rows))))
+    (when win (set-window-point win (point)))
+    (gh-radar-dashboard--update-highlight)))
+
 (provide 'gh-radar-dashboard)
 ;;; gh-radar-dashboard.el ends here
