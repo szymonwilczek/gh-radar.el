@@ -312,7 +312,15 @@
                         'face 'gh-radar-dashboard-meta)
             "\n\n"
             "  "
-            (propertize "[s] Settings   [d/x] Dismiss   [D/X] Dismiss all   [g] Refresh   [RET] Open   [i] Issues   [p] PRs   [n] Notifications   [?] Help   [q] Quit"
+            (propertize "[d] Dismiss   [D] Dismiss all   [RET] Open"
+                        'face 'gh-radar-dashboard-meta)
+            "\n"
+            "  "
+            (propertize "[i] Issues   [p] PRs   [n] Notifications"
+                        'face 'gh-radar-dashboard-meta)
+            "\n"
+            "  "
+            (propertize "[s] Settings   [?] Help   [q] Quit"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
