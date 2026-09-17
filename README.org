@@ -9,20 +9,17 @@ Tracks open issue, pull request counts, and unread notifications using the =gh= 
 (use-package gh-radar
   :load-path "~/Documents/GitHub/gh-radar.el"
   :config
-  (setq gh-radar-repos
-        '(("szymonwilczek/dotfiles" "issues" "pr")
-          ("szymonwilczek/bufferline.el" "issues")
-          ("szymonwilczek/gh-radar.el" "pr")))
-  (setq gh-radar-track-notifications t)
-  (setq gh-radar-interval 600)
   (gh-radar-mode 1))
 #+end_src
 
+Monitored repositories and tracking settings are managed interactively in the
+Settings buffer (=s= in the dashboard or =M-x gh-radar-settings=) and persisted
+automatically in =gh-radar-cache-file= across sessions.
+
 * Configuration
 
-- =gh-radar-repos=: List of repositories and targets: =("owner/repo" "issues" "pr")=, =("owner/repo" "issues")=, or =("owner/repo" "pr")=.
-- =gh-radar-track-notifications=: Track unread notifications from GitHub inbox (default: =t=).
-- =gh-radar-dashboard-display-style=: Display style for dashboard buffer: ='full-window=, ='same-window=, or ='pop-to-buffer= (default: ='full-window=).
+- =gh-radar-cache-file=: Path to persistent configuration and disk cache file (default: =gh-radar-cache.eld= in user-emacs-directory).
+- =gh-radar-dashboard-display-style=: Display style for dashboard and settings buffer: ='full-window=, ='same-window=, or ='pop-to-buffer= (default: ='full-window=).
 - =gh-radar-show-prefix=: Display GitHub prefix icon before counters (default: =nil=).
 - =gh-radar-bell-modeline=: Replace all mode-line counters with a single aggregate bell icon and total sum (default: =nil=).
 - =gh-radar-show-bell-icon=: Display bell icon in aggregate mode (default: =t=).
@@ -31,7 +28,6 @@ Tracks open issue, pull request counts, and unread notifications using the =gh= 
 - =gh-radar-show-pr-icon=: Display pull requests icon in mode-line (default: =t=).
 - =gh-radar-modeline-icons=: Set of icons to display in mode-line (default: ='(inbox issues pr bell)=).
 - =gh-radar-hide-zero-counts=: Hide mode-line segments with zero count: =t= (all), list like ='(inbox)=, ='never=, or =nil= (default: =nil=; in bell mode total 0 is hidden by default).
-- =gh-radar-cache-file=: Path to persistent disk cache file (default: =gh-radar-cache.eld= in user-emacs-directory).
 - =gh-radar-recent-items-limit=: Number of recent issues and PRs fetched per repository (default: 10).
 - =gh-radar-interval=: Background polling frequency in seconds (default: 600).
 - =gh-radar-gh-executable=: Path to =gh= binary (default: ="gh"=).
@@ -46,6 +42,13 @@ Tracks open issue, pull request counts, and unread notifications using the =gh= 
 * Commands
 
 - =gh-radar-dashboard=: Open dedicated interactive dashboard buffer.
+- =gh-radar-settings= (=s= in dashboard): Open interactive settings sub-buffer to manage monitored repositories and tracking options:
+  - =a=: Add repository (=owner/name=) with automatic verification.
+  - =i=: Toggle issues tracking for repository at point.
+  - =p=: Toggle pull requests tracking for repository at point.
+  - =d= / =x=: Delete repository from tracking.
+  - =n=: Toggle GitHub notifications inbox tracking.
+  - =q= / =s=: Save and return to dashboard.
 - =gh-radar-dashboard-dismiss= (=d= / =x=): Dismiss unread item or all unread items for repository.
 - =gh-radar-dashboard-dismiss-all= (=D= / =X=): Dismiss all unread activity across all repositories.
 - =gh-radar-dashboard-open-notifications=: Open GitHub notifications in browser.
