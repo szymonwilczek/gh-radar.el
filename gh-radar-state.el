@@ -17,6 +17,11 @@ Each item is of the form:
   (REPO . (:owner STR :name STR :issues INT :pr INT
            :new-issues INT :new-pr INT :timestamp TIME))")
 
+(defvar gh-radar-state-notifications nil
+  "Current state plist for GitHub notifications inbox.
+Format:
+  (:count INT :new INT :timestamp TIME :items LIST)")
+
 (defvar gh-radar-update-hook nil
   "Hook run after gh-radar finishes updating state.
 Each function is called with the full `gh-radar-state-data` alist.")
@@ -59,9 +64,26 @@ NEW-RECORDS is a list of plists containing :repo, :owner, :name, :issues, :pr."
     (run-hook-with-args 'gh-radar-update-hook gh-radar-state-data)
     (force-mode-line-update t)))
 
+(defun gh-radar-state-update-notifications (count &optional items)
+  "Update `gh-radar-state-notifications` with COUNT and optional ITEMS list.
+Calculates delta since previous update and alerts when new notifications arrive."
+  (let* ((old-count (or (plist-get gh-radar-state-notifications :count) 0))
+         (cur-count (or count 0))
+         (new-count (if gh-radar-state-notifications (max 0 (- cur-count old-count)) 0)))
+    (setq gh-radar-state-notifications
+          (list :count cur-count
+                :new new-count
+                :timestamp (current-time)
+                :items items))
+    (when (and gh-radar-notify-on-new (> new-count 0))
+      (message "[gh-radar] New notifications detected: +%d unread" new-count))
+    (run-hook-with-args 'gh-radar-update-hook gh-radar-state-data)
+    (force-mode-line-update t)))
+
 (defun gh-radar-state-clear ()
-  "Reset all cached radar metrics."
+  "Reset all cached radar metrics and notifications."
   (setq gh-radar-state-data nil)
+  (setq gh-radar-state-notifications nil)
   (force-mode-line-update t))
 
 (provide 'gh-radar-state)
