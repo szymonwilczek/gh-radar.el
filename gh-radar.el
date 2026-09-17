@@ -27,7 +27,7 @@
 (defun gh-radar-start-timer ()
   "Start or restart the periodic background fetch timer."
   (gh-radar-stop-timer)
-  (when (and gh-radar-repos (> gh-radar-interval 0))
+  (when (and (or gh-radar-repos gh-radar-track-notifications) (> gh-radar-interval 0))
     (run-with-idle-timer 1.5 nil #'gh-radar-process-fetch)
     (setq gh-radar--timer
           (run-at-time gh-radar-interval gh-radar-interval #'gh-radar-process-fetch))))
