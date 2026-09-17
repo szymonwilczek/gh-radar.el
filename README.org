@@ -19,6 +19,7 @@ automatically in =gh-radar-cache-file= across sessions.
 * Configuration
 
 - =gh-radar-cache-file=: Path to persistent configuration and disk cache file (default: =gh-radar-cache.eld= in user-emacs-directory).
+- =gh-radar-count-display=: Display mode for counts in mode-line and dashboard: ='all= (total + new delta) or ='only-new= (only unread delta counts) (default: ='all=).
 - =gh-radar-dashboard-display-style=: Display style for dashboard and settings buffer: ='full-window=, ='same-window=, or ='pop-to-buffer= (default: ='full-window=).
 - =gh-radar-show-prefix=: Display GitHub prefix icon before counters (default: =nil=).
 - =gh-radar-bell-modeline=: Replace all mode-line counters with a single aggregate bell icon and total sum (default: =nil=).
@@ -48,7 +49,9 @@ automatically in =gh-radar-cache-file= across sessions.
   - =p=: Toggle pull requests tracking for repository at point.
   - =d= / =x=: Delete repository from tracking.
   - =n=: Toggle GitHub notifications inbox tracking.
+  - =c=: Toggle modeline count display mode (='all= vs ='only-new=).
   - =q= / =s=: Save and return to dashboard.
+- =gh-radar-toggle-count-display=: Toggle between displaying all counts and only new delta counts.
 - =gh-radar-dashboard-dismiss= (=d= / =x=): Dismiss unread item or all unread items for repository.
 - =gh-radar-dashboard-dismiss-all= (=D= / =X=): Dismiss all unread activity across all repositories.
 - =gh-radar-dashboard-open-notifications=: Open GitHub notifications in browser.
