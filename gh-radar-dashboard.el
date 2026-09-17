@@ -17,6 +17,7 @@
 (declare-function evil-define-key "evil-core" (state keymap key def &rest bindings))
 (declare-function evil-make-overriding-map "evil-core" (keymap &optional state copy))
 (declare-function octo-dashboard-open "octo-dashboard" (owner repo &optional tab))
+(declare-function gh-radar-process-fetch "gh-radar-process" (&optional callback))
 
 (defcustom gh-radar-dashboard-max-width 100
   "Maximum character width for the radar dashboard layout."
