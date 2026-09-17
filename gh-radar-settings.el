@@ -15,12 +15,13 @@
 (require 'gh-radar-config)
 (require 'gh-radar-cache)
 (require 'gh-radar-state)
+(require 'gh-radar-process)
+
+(autoload 'gh-radar-dashboard-render "gh-radar-dashboard")
+(autoload 'gh-radar-dashboard-width "gh-radar-dashboard")
 
 (declare-function evil-define-key "evil-core" (state keymap key def &rest bindings))
 (declare-function evil-make-overriding-map "evil-core" (keymap &optional state copy))
-(declare-function gh-radar-process-fetch "gh-radar-process" (&optional callback))
-(declare-function gh-radar-dashboard-render "gh-radar-dashboard" ())
-(declare-function gh-radar-dashboard-width "gh-radar-dashboard" ())
 
 (defface gh-radar-settings-on
   '((t :inherit font-lock-keyword-face :weight bold))
