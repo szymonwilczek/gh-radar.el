@@ -116,6 +116,17 @@ Defaults to t."
   :type 'boolean
   :group 'gh-radar)
 
+(defcustom gh-radar-count-display 'all
+  "Mode for displaying counts in the mode-line and dashboard.
+Can be:
+  `all'      - Display total counts along with unread deltas (default).
+  `only-new' - Display only the delta of newly arrived unread items:
+               e.g. \"+2\" (or \"0\" when none).
+Defaults to `all'."
+  :type '(choice (const :tag "All counts (total + new delta)" all)
+                 (const :tag "Only new counts (unread delta)" only-new))
+  :group 'gh-radar)
+
 (defcustom gh-radar-dashboard-display-style 'full-window
   "Display style for opening the interactive dashboard buffer.
 Supported values:

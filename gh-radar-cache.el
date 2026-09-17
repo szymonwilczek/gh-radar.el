@@ -24,13 +24,13 @@
   "Normalize RAW loaded data into standard plist format."
   (cond
    ((null raw)
-    (list :version 1 :settings (list :track-notifications t) :repos nil :items nil))
+    (list :version 1 :settings (list :track-notifications t :count-display 'all) :repos nil :items nil))
    ((and (consp raw) (keywordp (car raw)))
     raw)
    ((consp raw)
-    (list :version 1 :settings (list :track-notifications t) :repos nil :items raw))
+    (list :version 1 :settings (list :track-notifications t :count-display 'all) :repos nil :items raw))
    (t
-    (list :version 1 :settings (list :track-notifications t) :repos nil :items nil))))
+    (list :version 1 :settings (list :track-notifications t :count-display 'all) :repos nil :items nil))))
 
 (defun gh-radar-cache-load ()
   "Load persisted radar configuration and state from `gh-radar-cache-file`.
@@ -133,6 +133,8 @@ Returns the normalized cache plist."
     (setq gh-radar-cache--data data)
     (when (and (eq key :track-notifications) (boundp 'gh-radar-track-notifications))
       (setq gh-radar-track-notifications val))
+    (when (and (eq key :count-display) (boundp 'gh-radar-count-display))
+      (setq gh-radar-count-display val))
     (gh-radar-cache-save)))
 
 (defun gh-radar-cache-get (repo)
