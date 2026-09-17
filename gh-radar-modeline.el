@@ -63,7 +63,8 @@
          (_ t))))
 
 (defun gh-radar-modeline--hide-zero-p (type count)
-  "Return non-nil if segment TYPE (`:inbox', `:issue', or `:pr') with COUNT should be hidden."
+  "Return non-nil if segment TYPE with COUNT should be hidden.
+TYPE can be `:inbox', `:issue', or `:pr'."
   (and (zerop count)
        (or (eq gh-radar-hide-zero-counts t)
            (and (listp gh-radar-hide-zero-counts)
