@@ -32,7 +32,9 @@ automatically in =gh-radar-cache-file= across sessions.
 - =gh-radar-recent-items-limit=: Number of recent issues and PRs fetched per repository (default: 10).
 - =gh-radar-interval=: Background polling frequency in seconds (default: 600).
 - =gh-radar-gh-executable=: Path to =gh= binary (default: ="gh"=).
+- =gh-radar-desktop-notification-backend=: Backend for desktop system notifications: ='notifications= (D-Bus / =notifications-notify=), ='notify-send= (external binary), custom function, or =nil= (default: =nil=).
 - =gh-radar-notify-on-new=: Echo notification on count increments (default: =t=).
+- =gh-radar-icons=: Alist mapping item types to nerd-icon names or unicode glyphs (persisted across sessions).
 
 * Mode-line
 
@@ -50,6 +52,9 @@ automatically in =gh-radar-cache-file= across sessions.
   - =d= / =x=: Delete repository from tracking.
   - =n=: Toggle GitHub notifications inbox tracking.
   - =c=: Toggle modeline count display mode (='all= vs ='only-new=).
+  - =b=: Toggle aggregate modeline bell mode.
+  - =z=: Cycle zero counts hiding mode (disabled, all, inbox only).
+  - =I= (or =RET= on row): Interactively customize icon glyphs with candidate completion.
   - =q= / =s=: Save and return to dashboard.
 - =gh-radar-toggle-count-display=: Toggle between displaying all counts and only new delta counts.
 - =gh-radar-dashboard-dismiss= (=d= / =x=): Dismiss unread item or all unread items for repository.
