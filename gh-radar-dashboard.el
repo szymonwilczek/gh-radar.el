@@ -256,5 +256,111 @@
     (when win (set-window-point win (point)))
     (gh-radar-dashboard--update-highlight)))
 
+(defun gh-radar-dashboard-refresh-buffer ()
+  "Trigger asynchronous radar query and re-render dashboard."
+  (interactive)
+  (message "[gh-radar] Refreshing...")
+  (gh-radar-process-fetch
+   (lambda (_data)
+     (when-let* ((buf (get-buffer "*gh-radar*")))
+       (when (buffer-live-p buf)
+         (with-current-buffer buf
+           (gh-radar-dashboard-render))))
+     (message "[gh-radar] Refresh complete."))))
+
+(defun gh-radar-dashboard-help ()
+  "Display a popup side window listing dashboard key bindings."
+  (interactive)
+  (let ((buf (get-buffer-create "*gh-radar help*")))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert (propertize "gh-radar dashboard keys\n" 'face 'gh-radar-dashboard-title))
+        (insert (propertize "Press RET or action key on a repository row.\n\n"
+                            'face 'gh-radar-dashboard-meta))
+        (insert (propertize "Navigation\n" 'face 'gh-radar-dashboard-repo))
+        (insert "  n, j         Next repository\n")
+        (insert "  p, k         Previous repository\n\n")
+        (insert (propertize "Actions\n" 'face 'gh-radar-dashboard-repo))
+        (insert "  RET          Open menu (issues/pulls/web)\n")
+        (insert "  i            Open issues (Octo / Web)\n")
+        (insert "  P, p         Open pull requests (Octo / Web)\n")
+        (insert "  w, b         Open repository in browser\n")
+        (insert "  g, r         Refresh radar metrics\n\n")
+        (insert (propertize "General\n" 'face 'gh-radar-dashboard-repo))
+        (insert "  ?            Show this help\n")
+        (insert "  q            Close window\n\n")
+        (insert (propertize "Press q to close this window.\n"
+                            'face 'gh-radar-dashboard-meta)))
+      (special-mode)
+      (local-set-key (kbd "q") #'quit-window)
+      (local-set-key (kbd "?") #'quit-window)
+      (goto-char (point-min)))
+    (display-buffer buf
+                    '((display-buffer-in-side-window)
+                      (side . right)
+                      (window-width . 46)))
+    (select-window (get-buffer-window buf))))
+
+(defvar gh-radar-dashboard-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "n") #'gh-radar-dashboard-next-row)
+    (define-key map (kbd "j") #'gh-radar-dashboard-next-row)
+    (define-key map (kbd "p") #'gh-radar-dashboard-previous-row)
+    (define-key map (kbd "k") #'gh-radar-dashboard-previous-row)
+    (define-key map (kbd "RET") #'gh-radar-dashboard-open-at-point)
+    (define-key map [return] #'gh-radar-dashboard-open-at-point)
+    (define-key map (kbd "i") #'gh-radar-dashboard-open-issues)
+    (define-key map (kbd "P") #'gh-radar-dashboard-open-pulls)
+    (define-key map (kbd "p") #'gh-radar-dashboard-open-pulls)
+    (define-key map (kbd "w") #'gh-radar-dashboard-browse-repo)
+    (define-key map (kbd "b") #'gh-radar-dashboard-browse-repo)
+    (define-key map (kbd "g") #'gh-radar-dashboard-refresh-buffer)
+    (define-key map (kbd "r") #'gh-radar-dashboard-refresh-buffer)
+    (define-key map (kbd "C-c g") #'gh-radar-dashboard-refresh-buffer)
+    (define-key map (kbd "C-c C-g") #'gh-radar-dashboard-refresh-buffer)
+    (define-key map (kbd "?") #'gh-radar-dashboard-help)
+    (define-key map (kbd "q") #'quit-window)
+    (define-key map [mouse-1] #'gh-radar-dashboard-open-at-point)
+    map)
+  "Keymap for `gh-radar-dashboard-mode'.")
+
+(define-derived-mode gh-radar-dashboard-mode special-mode "GH-Radar"
+  "Major mode for the gh-radar repository dashboard."
+  :group 'gh-radar
+  (setq-local truncate-lines nil)
+  (setq-local cursor-type nil)
+  (setq-local display-line-numbers nil)
+  (when (fboundp 'display-line-numbers-mode)
+    (display-line-numbers-mode -1))
+  (setq-local buffer-read-only t)
+  (setq-local revert-buffer-function
+              (lambda (&rest _) (gh-radar-dashboard-refresh-buffer)))
+  (add-hook 'post-command-hook #'gh-radar-dashboard--update-highlight nil t)
+  (add-hook 'kill-buffer-hook
+            (lambda ()
+              (when (overlayp gh-radar-dashboard--highlight)
+                (delete-overlay gh-radar-dashboard--highlight)))
+            nil t))
+
+(with-eval-after-load 'evil
+  (dolist (state '(normal motion))
+    (evil-make-overriding-map gh-radar-dashboard-mode-map state)
+    (evil-define-key state gh-radar-dashboard-mode-map
+      (kbd "j") #'gh-radar-dashboard-next-row
+      (kbd "k") #'gh-radar-dashboard-previous-row
+      (kbd "n") #'gh-radar-dashboard-next-row
+      (kbd "p") #'gh-radar-dashboard-previous-row
+      (kbd "RET") #'gh-radar-dashboard-open-at-point
+      (kbd "i") #'gh-radar-dashboard-open-issues
+      (kbd "P") #'gh-radar-dashboard-open-pulls
+      (kbd "p") #'gh-radar-dashboard-open-pulls
+      (kbd "w") #'gh-radar-dashboard-browse-repo
+      (kbd "b") #'gh-radar-dashboard-browse-repo
+      (kbd "g") #'gh-radar-dashboard-refresh-buffer
+      (kbd "r") #'gh-radar-dashboard-refresh-buffer
+      (kbd "?") #'gh-radar-dashboard-help
+      (kbd "q") #'quit-window)))
+
 (provide 'gh-radar-dashboard)
 ;;; gh-radar-dashboard.el ends here
