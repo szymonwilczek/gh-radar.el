@@ -48,6 +48,12 @@ Defaults to nil."
   :type 'boolean
   :group 'gh-radar)
 
+(defcustom gh-radar-track-notifications t
+  "Whether to track unread notifications from GitHub inbox.
+Defaults to t."
+  :type 'boolean
+  :group 'gh-radar)
+
 (defface gh-radar-prefix-face
   '((t :inherit font-lock-comment-face :weight bold))
   "Face for the radar prefix or icon."
@@ -71,6 +77,11 @@ Defaults to nil."
 (defface gh-radar-new-face
   '((t :inherit error :weight bold))
   "Face for newly detected issues or pull requests."
+  :group 'gh-radar)
+
+(defface gh-radar-inbox-face
+  '((t :inherit font-lock-constant-face))
+  "Face for inbox notification count."
   :group 'gh-radar)
 
 (provide 'gh-radar-config)
