@@ -16,7 +16,6 @@
 
 (declare-function evil-define-key "evil-core" (state keymap key def &rest bindings))
 (declare-function evil-make-overriding-map "evil-core" (keymap &optional state copy))
-(declare-function octo-dashboard-open "octo-dashboard" (owner repo &optional tab))
 (declare-function gh-radar-process-fetch "gh-radar-process" (&optional callback))
 
 (defcustom gh-radar-dashboard-max-width 100
@@ -133,54 +132,36 @@
   (browse-url "https://github.com/notifications"))
 
 (defun gh-radar-dashboard-open-issues ()
-  "Open issues for the repository or inbox at point."
+  "Open issues for the repository or inbox at point in web browser."
   (interactive)
   (if-let* ((item (gh-radar-dashboard-current-repo)))
       (if (plist-get item :inbox)
           (gh-radar-dashboard-open-notifications)
-        (let ((owner (plist-get item :owner))
-              (name (plist-get item :name)))
-          (if (fboundp 'octo-dashboard-open)
-              (octo-dashboard-open owner name 'issues)
-            (browse-url (format "https://github.com/%s/%s/issues" owner name)))))
+        (let ((repo (or (plist-get item :repo)
+                        (format "%s/%s" (plist-get item :owner) (plist-get item :name)))))
+          (browse-url (format "https://github.com/%s/issues" repo))))
     (user-error "No item at point")))
 
 (defun gh-radar-dashboard-open-pulls ()
-  "Open pull requests for the repository at point."
+  "Open pull requests for the repository or inbox at point in web browser."
   (interactive)
   (if-let* ((item (gh-radar-dashboard-current-repo)))
       (if (plist-get item :inbox)
           (gh-radar-dashboard-open-notifications)
-        (let ((owner (plist-get item :owner))
-              (name (plist-get item :name)))
-          (if (fboundp 'octo-dashboard-open)
-              (octo-dashboard-open owner name 'pulls)
-            (browse-url (format "https://github.com/%s/%s/pulls" owner name)))))
-    (user-error "No item at point")))
-
-(defun gh-radar-dashboard-browse-repo ()
-  "Open repository or inbox at point in web browser."
-  (interactive)
-  (if-let* ((item (gh-radar-dashboard-current-repo)))
-      (if (plist-get item :inbox)
-          (gh-radar-dashboard-open-notifications)
-        (browse-url (format "https://github.com/%s" (plist-get item :repo))))
+        (let ((repo (or (plist-get item :repo)
+                        (format "%s/%s" (plist-get item :owner) (plist-get item :name)))))
+          (browse-url (format "https://github.com/%s/pulls" repo))))
     (user-error "No item at point")))
 
 (defun gh-radar-dashboard-open-at-point ()
-  "Open issues, pulls, or browser for the repository or inbox at point."
+  "Open repository page or inbox at point in web browser."
   (interactive)
   (if-let* ((item (gh-radar-dashboard-current-repo)))
       (if (plist-get item :inbox)
           (gh-radar-dashboard-open-notifications)
-        (let* ((repo (plist-get item :repo))
-               (choice (completing-read (format "Action for %s: " repo)
-                                       '("issues" "pulls" "browser")
-                                       nil t "issues")))
-          (pcase choice
-            ("issues" (gh-radar-dashboard-open-issues))
-            ("pulls" (gh-radar-dashboard-open-pulls))
-            ("browser" (gh-radar-dashboard-browse-repo)))))
+        (let ((repo (or (plist-get item :repo)
+                        (format "%s/%s" (plist-get item :owner) (plist-get item :name)))))
+          (browse-url (format "https://github.com/%s" repo))))
     (user-error "No item at point")))
 
 (defun gh-radar-dashboard--insert-header ()
