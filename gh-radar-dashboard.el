@@ -189,7 +189,7 @@
                         'face 'gh-radar-dashboard-meta)
             "\n\n"
             "  "
-            (propertize "[g] Refresh   [RET] Open   [i] Issues   [p] PRs   [N] Inbox   [w] Web   [?] Help   [q] Quit"
+            (propertize "[g] Refresh   [RET] Open   [i] Issues   [p] PRs   [n] Notifications   [?] Help   [q] Quit"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
@@ -304,14 +304,13 @@
         (insert (propertize "Press RET or action key on a repository row.\n\n"
                             'face 'gh-radar-dashboard-meta))
         (insert (propertize "Navigation\n" 'face 'gh-radar-dashboard-repo))
-        (insert "  n, j         Next repository\n")
-        (insert "  p, k         Previous repository\n\n")
+        (insert "  j, <down>    Next row\n")
+        (insert "  k, <up>      Previous row\n\n")
         (insert (propertize "Actions\n" 'face 'gh-radar-dashboard-repo))
-        (insert "  RET          Open menu (issues/pulls/web)\n")
-        (insert "  i            Open issues (Octo / Web)\n")
-        (insert "  P, p         Open pull requests (Octo / Web)\n")
-        (insert "  N            Open GitHub notifications\n")
-        (insert "  w, b         Open repository in browser\n")
+        (insert "  RET          Open repository page\n")
+        (insert "  i            Open repository issues\n")
+        (insert "  p, P         Open repository pull requests\n")
+        (insert "  n, N         Open GitHub notifications\n")
         (insert "  g, r         Refresh radar metrics\n\n")
         (insert (propertize "General\n" 'face 'gh-radar-dashboard-repo))
         (insert "  ?            Show this help\n")
@@ -330,18 +329,17 @@
 
 (defvar gh-radar-dashboard-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "n") #'gh-radar-dashboard-next-row)
     (define-key map (kbd "j") #'gh-radar-dashboard-next-row)
-    (define-key map (kbd "p") #'gh-radar-dashboard-previous-row)
     (define-key map (kbd "k") #'gh-radar-dashboard-previous-row)
+    (define-key map (kbd "<down>") #'gh-radar-dashboard-next-row)
+    (define-key map (kbd "<up>") #'gh-radar-dashboard-previous-row)
     (define-key map (kbd "RET") #'gh-radar-dashboard-open-at-point)
     (define-key map [return] #'gh-radar-dashboard-open-at-point)
     (define-key map (kbd "i") #'gh-radar-dashboard-open-issues)
-    (define-key map (kbd "P") #'gh-radar-dashboard-open-pulls)
     (define-key map (kbd "p") #'gh-radar-dashboard-open-pulls)
+    (define-key map (kbd "P") #'gh-radar-dashboard-open-pulls)
+    (define-key map (kbd "n") #'gh-radar-dashboard-open-notifications)
     (define-key map (kbd "N") #'gh-radar-dashboard-open-notifications)
-    (define-key map (kbd "w") #'gh-radar-dashboard-browse-repo)
-    (define-key map (kbd "b") #'gh-radar-dashboard-browse-repo)
     (define-key map (kbd "g") #'gh-radar-dashboard-refresh-buffer)
     (define-key map (kbd "r") #'gh-radar-dashboard-refresh-buffer)
     (define-key map (kbd "C-c g") #'gh-radar-dashboard-refresh-buffer)
@@ -376,15 +374,14 @@
     (evil-define-key state gh-radar-dashboard-mode-map
       (kbd "j") #'gh-radar-dashboard-next-row
       (kbd "k") #'gh-radar-dashboard-previous-row
-      (kbd "n") #'gh-radar-dashboard-next-row
-      (kbd "p") #'gh-radar-dashboard-previous-row
+      (kbd "<down>") #'gh-radar-dashboard-next-row
+      (kbd "<up>") #'gh-radar-dashboard-previous-row
       (kbd "RET") #'gh-radar-dashboard-open-at-point
       (kbd "i") #'gh-radar-dashboard-open-issues
-      (kbd "P") #'gh-radar-dashboard-open-pulls
       (kbd "p") #'gh-radar-dashboard-open-pulls
+      (kbd "P") #'gh-radar-dashboard-open-pulls
+      (kbd "n") #'gh-radar-dashboard-open-notifications
       (kbd "N") #'gh-radar-dashboard-open-notifications
-      (kbd "w") #'gh-radar-dashboard-browse-repo
-      (kbd "b") #'gh-radar-dashboard-browse-repo
       (kbd "g") #'gh-radar-dashboard-refresh-buffer
       (kbd "r") #'gh-radar-dashboard-refresh-buffer
       (kbd "?") #'gh-radar-dashboard-help
