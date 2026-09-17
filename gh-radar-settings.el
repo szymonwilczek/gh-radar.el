@@ -93,7 +93,7 @@
                         'face 'gh-radar-dashboard-meta)
             "\n\n"
             "  "
-            (propertize "[a] Add repo   [i] Toggle issues   [p] Toggle PRs   [d/x] Delete repo   [n] Toggle inbox   [q] Return"
+            (propertize "[a] Add repo   [i] Toggle issues   [p] Toggle PRs   [d/x] Delete repo   [n] Toggle inbox   [c] Display mode   [q] Return"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
@@ -115,6 +115,20 @@
             "\n\n")
     (let ((end (point)))
       (push (list beg end :notifications nil) gh-radar-settings--rows))))
+
+(defun gh-radar-settings--insert-count-display ()
+  "Insert count display mode toggle row."
+  (let* ((mode (gh-radar-cache-get-setting :count-display 'all))
+         (is-new (memq mode '(new only-new)))
+         (beg (point)))
+    (insert "    [c]  "
+            (propertize "Modeline Count Mode:          " 'face 'gh-radar-dashboard-unread-title)
+            (if is-new
+                (propertize "[ ONLY NEW (+Delta) ]" 'face 'gh-radar-settings-on)
+              (propertize "[ ALL (Total + New) ]" 'face 'gh-radar-settings-off))
+            "\n\n")
+    (let ((end (point)))
+      (push (list beg end :count-display nil) gh-radar-settings--rows))))
 
 (defun gh-radar-settings--insert-repos ()
   "Insert repository configuration entries."
@@ -156,14 +170,15 @@
 (defun gh-radar-settings-render ()
   "Render the settings buffer content."
   (let ((inhibit-read-only t)
-        (orig-line (line-number-at-pos (point)))
-        (orig-col (current-column)))
+         (orig-line (line-number-at-pos (point)))
+         (orig-col (current-column)))
     (setq gh-radar-settings--rows nil)
     (when (overlayp gh-radar-settings--highlight)
       (delete-overlay gh-radar-settings--highlight))
     (erase-buffer)
     (gh-radar-settings--insert-header)
     (gh-radar-settings--insert-notifications)
+    (gh-radar-settings--insert-count-display)
     (gh-radar-settings--insert-repos)
     (setq gh-radar-settings--rows (nreverse gh-radar-settings--rows))
     (goto-char (point-min))
@@ -244,12 +259,32 @@
     (force-mode-line-update t)
     (message "[gh-radar] Notifications tracking %s" (if new "enabled" "disabled"))))
 
+;;;###autoload
+(defun gh-radar-settings-toggle-count-display ()
+  "Toggle between displaying all counts vs only new delta counts."
+  (interactive)
+  (let* ((cur (gh-radar-cache-get-setting :count-display 'all))
+         (new (if (memq cur '(new only-new)) 'all 'only-new)))
+    (gh-radar-cache-set-setting :count-display new)
+    (gh-radar-settings-render)
+    (force-mode-line-update t)
+    (when (fboundp 'gh-radar-dashboard-render)
+      (when-let* ((dash (get-buffer "*gh-radar*")))
+        (when (buffer-live-p dash)
+          (with-current-buffer dash
+            (gh-radar-dashboard-render)))))
+    (message "[gh-radar] Modeline count mode set to: %s"
+             (if (eq new 'only-new) "ONLY NEW (+Delta)" "ALL (Total + New)"))))
+
+(defalias 'gh-radar-toggle-count-display #'gh-radar-settings-toggle-count-display)
+
 (defun gh-radar-settings-smart-action ()
   "Execute the appropriate action for row at point on RET."
   (interactive)
   (if-let* ((row (gh-radar-settings--row-at-point)))
       (pcase (nth 2 row)
         (:notifications (gh-radar-settings-toggle-notifications))
+        (:count-display (gh-radar-settings-toggle-count-display))
         (:repo (gh-radar-settings-toggle-issues)))
     (gh-radar-settings-add-repo (read-string "Add repository (owner/name): "))))
 
@@ -285,6 +320,8 @@
     (define-key map (kbd "P") #'gh-radar-settings-toggle-prs)
     (define-key map (kbd "n") #'gh-radar-settings-toggle-notifications)
     (define-key map (kbd "N") #'gh-radar-settings-toggle-notifications)
+    (define-key map (kbd "c") #'gh-radar-settings-toggle-count-display)
+    (define-key map (kbd "C") #'gh-radar-settings-toggle-count-display)
     (define-key map (kbd "RET") #'gh-radar-settings-smart-action)
     (define-key map [return] #'gh-radar-settings-smart-action)
     (define-key map (kbd "q") #'gh-radar-settings-quit)
@@ -326,6 +363,8 @@
       (kbd "P") #'gh-radar-settings-toggle-prs
       (kbd "n") #'gh-radar-settings-toggle-notifications
       (kbd "N") #'gh-radar-settings-toggle-notifications
+      (kbd "c") #'gh-radar-settings-toggle-count-display
+      (kbd "C") #'gh-radar-settings-toggle-count-display
       (kbd "RET") #'gh-radar-settings-smart-action
       (kbd "q") #'gh-radar-settings-quit
       (kbd "s") #'gh-radar-settings-quit
