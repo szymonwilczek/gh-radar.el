@@ -15,6 +15,7 @@
 (declare-function nerd-icons-octicon "nerd-icons")
 (declare-function gh-radar-refresh "gh-radar")
 (declare-function gh-radar-dashboard "gh-radar-dashboard")
+(declare-function gh-radar-cache-get-repos "gh-radar-cache")
 
 (defun gh-radar-modeline--icon (name fallback)
   "Resolve nerd-icon NAME or return FALLBACK string."
@@ -51,19 +52,46 @@
               "\n---------------------------------\n"
               (string-join (nreverse lines) "\n")))))
 
+(defun gh-radar-modeline--target-enabled-p (target)
+  "Return non-nil if TARGET (\"issues\" or \"pr\") is enabled in any configured repo."
+  (let* ((str-target (if (symbolp target) (symbol-name target) target))
+         (sym-target (intern (if (string-prefix-p ":" str-target)
+                                 (substring str-target 1)
+                               str-target)))
+         (colon-sym-target (intern (concat ":" (symbol-name sym-target))))
+         (repos (or (when (fboundp 'gh-radar-cache-get-repos)
+                      (gh-radar-cache-get-repos))
+                    gh-radar-repos)))
+    (cl-some (lambda (entry)
+               (let ((targets (cdr entry)))
+                 (or (member (symbol-name sym-target) targets)
+                     (member sym-target targets)
+                     (member colon-sym-target targets))))
+             repos)))
+
 (defun gh-radar-modeline--repo-totals ()
   "Compute total issues, PRs, and new counts across repositories.
 Returns a plist `(:issues I :prs P :new-issues NI :new-prs NP)'."
   (let ((tot-issues 0)
         (tot-prs 0)
         (tot-new-issues 0)
-        (tot-new-prs 0))
+        (tot-new-prs 0)
+        (repos (or (when (fboundp 'gh-radar-cache-get-repos)
+                     (gh-radar-cache-get-repos))
+                   gh-radar-repos)))
     (dolist (item gh-radar-state-data)
-      (let ((data (cdr item)))
-        (setq tot-issues (+ tot-issues (or (plist-get data :issues) 0)))
-        (setq tot-prs (+ tot-prs (or (plist-get data :pr) 0)))
-        (setq tot-new-issues (+ tot-new-issues (or (plist-get data :new-issues) 0)))
-        (setq tot-new-prs (+ tot-new-prs (or (plist-get data :new-pr) 0)))))
+      (let* ((repo-name (car item))
+             (entry (assoc repo-name repos))
+             (targets (cdr entry))
+             (track-issues (or (null entry) (member "issues" targets) (memq :issues targets)))
+             (track-prs (or (null entry) (member "pr" targets) (memq :pr targets)))
+             (data (cdr item)))
+        (when track-issues
+          (setq tot-issues (+ tot-issues (or (plist-get data :issues) 0)))
+          (setq tot-new-issues (+ tot-new-issues (or (plist-get data :new-issues) 0))))
+        (when track-prs
+          (setq tot-prs (+ tot-prs (or (plist-get data :pr) 0)))
+          (setq tot-new-prs (+ tot-new-prs (or (plist-get data :new-pr) 0))))))
     (list :issues tot-issues
           :prs tot-prs
           :new-issues tot-new-issues
@@ -158,12 +186,14 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
                  (tot-new-prs (plist-get totals :new-prs))
                  (act-issues (if (memq gh-radar-count-display '(new only-new)) tot-new-issues tot-issues))
                  (act-prs (if (memq gh-radar-count-display '(new only-new)) tot-new-prs tot-prs)))
-            (unless (gh-radar-modeline--hide-zero-p :issue act-issues)
+            (when (and (gh-radar-modeline--target-enabled-p "issues")
+                       (not (gh-radar-modeline--hide-zero-p :issue act-issues)))
               (let ((issue-icon (when (gh-radar-modeline--show-icon-p :issue)
                                   (gh-radar-icon :issues))))
                 (push (gh-radar-modeline--format-segment issue-icon tot-issues tot-new-issues)
                       parts)))
-            (unless (gh-radar-modeline--hide-zero-p :pr act-prs)
+            (when (and (gh-radar-modeline--target-enabled-p "pr")
+                       (not (gh-radar-modeline--hide-zero-p :pr act-prs)))
               (let ((pr-icon (when (gh-radar-modeline--show-icon-p :pr)
                                (gh-radar-icon :pr))))
                 (push (gh-radar-modeline--format-segment pr-icon tot-prs tot-new-prs)
