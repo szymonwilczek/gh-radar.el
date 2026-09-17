@@ -179,7 +179,8 @@ Supported values:
     (issues . "nf-oct-issue_opened")
     (pr . "nf-oct-git_pull_request")
     (bell . "nf-oct-bell")
-    (repo . "nf-oct-repo"))
+    (repo . "nf-oct-repo")
+    (prefix . "nf-oct-mark_github"))
   "Alist mapping gh-radar item types to icon names or unicode characters."
   :type '(alist :key-type symbol :value-type string)
   :group 'gh-radar)
@@ -189,7 +190,8 @@ Supported values:
     (issues . "#")
     (pr . "!")
     (bell . "B")
-    (repo . "R"))
+    (repo . "R")
+    (prefix . "GH"))
   "Alist mapping gh-radar item types to terminal/fallback strings."
   :type '(alist :key-type symbol :value-type string)
   :group 'gh-radar)

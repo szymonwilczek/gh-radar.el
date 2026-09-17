@@ -18,9 +18,7 @@
 
 (defun gh-radar-modeline--icon (name fallback)
   "Resolve nerd-icon NAME or return FALLBACK string."
-  (if (and (fboundp 'nerd-icons-octicon) (display-graphic-p))
-      (nerd-icons-octicon name)
-    fallback))
+  (gh-radar-resolve-icon name fallback))
 
 (defun gh-radar-modeline--tooltip ()
   "Construct detailed tooltip text for current radar state."
@@ -137,7 +135,7 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
                  (active-cnt (if (memq gh-radar-count-display '(new only-new)) total-new total-cnt)))
             (unless (gh-radar-modeline--hide-zero-p :bell active-cnt)
               (let ((bell-icon (when (gh-radar-modeline--show-icon-p :bell)
-                                 (gh-radar-modeline--icon "nf-oct-bell" "!"))))
+                                 (gh-radar-icon :bell))))
                 (push (gh-radar-modeline--format-segment bell-icon total-cnt total-new)
                       parts))))
         (when (and gh-radar-track-notifications gh-radar-state-notifications)
@@ -146,7 +144,7 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
                  (active-cnt (if (memq gh-radar-count-display '(new only-new)) inbox-new inbox-cnt)))
             (unless (gh-radar-modeline--hide-zero-p :inbox active-cnt)
               (let ((inbox-icon (when (gh-radar-modeline--show-icon-p :inbox)
-                                  (gh-radar-modeline--icon "nf-oct-inbox" "@"))))
+                                  (gh-radar-icon :inbox))))
                 (push (gh-radar-modeline--format-segment inbox-icon inbox-cnt inbox-new)
                       parts)))))
         (when gh-radar-state-data
@@ -159,17 +157,17 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
                  (act-prs (if (memq gh-radar-count-display '(new only-new)) tot-new-prs tot-prs)))
             (unless (gh-radar-modeline--hide-zero-p :issue act-issues)
               (let ((issue-icon (when (gh-radar-modeline--show-icon-p :issue)
-                                  (gh-radar-modeline--icon "nf-oct-issue_opened" "#"))))
+                                  (gh-radar-icon :issues))))
                 (push (gh-radar-modeline--format-segment issue-icon tot-issues tot-new-issues)
                       parts)))
             (unless (gh-radar-modeline--hide-zero-p :pr act-prs)
               (let ((pr-icon (when (gh-radar-modeline--show-icon-p :pr)
-                               (gh-radar-modeline--icon "nf-oct-git_pull_request" "PR"))))
+                               (gh-radar-icon :pr))))
                 (push (gh-radar-modeline--format-segment pr-icon tot-prs tot-new-prs)
                       parts))))))
       (when parts
         (let* ((prefix-str (when gh-radar-show-prefix
-                             (format "%s  " (propertize (gh-radar-modeline--icon "nf-oct-mark_github" "GH")
+                             (format "%s  " (propertize (gh-radar-icon :prefix)
                                                         'face 'gh-radar-prefix-face))))
                (map (let ((km (make-sparse-keymap)))
                       (define-key km [mode-line mouse-1] #'gh-radar-dashboard)
