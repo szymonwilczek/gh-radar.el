@@ -11,6 +11,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'subr-x)
 (require 'gh-radar-config)
 (require 'gh-radar-cache)
 (require 'gh-radar-state)

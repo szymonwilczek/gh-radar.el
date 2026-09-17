@@ -11,6 +11,7 @@
 
 (require 'json)
 (require 'seq)
+(require 'subr-x)
 (require 'gh-radar-config)
 (require 'gh-radar-query)
 (require 'gh-radar-state)
