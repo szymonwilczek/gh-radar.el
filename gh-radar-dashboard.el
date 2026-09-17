@@ -320,7 +320,11 @@
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
-            (propertize "[s] Settings   [?] Help   [q] Quit"
+            (propertize "[r] Refresh   [s] Settings   [?] Help"
+                        'face 'gh-radar-dashboard-meta)
+            "\n"
+            "  "
+            (propertize "[q] Quit"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
