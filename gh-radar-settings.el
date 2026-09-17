@@ -269,10 +269,20 @@
       (user-error "Invalid repository format '%s'. Must be 'owner/name'" cleaned))
     (when (assoc cleaned (gh-radar-cache-get-repos))
       (user-error "Repository '%s' is already configured" cleaned))
-    (gh-radar-cache-add-repo cleaned '("issues" "pr"))
-    (gh-radar-settings-render)
-    (message "[gh-radar] Added %s (issues & PRs enabled)" cleaned)
-    (gh-radar-process-fetch)))
+    (message "[gh-radar] Verifying repository %s on GitHub..." cleaned)
+    (let* ((output (with-temp-buffer
+                     (let ((code (call-process gh-radar-gh-executable nil t nil
+                                               "repo" "view" cleaned "--json" "name")))
+                       (cons code (string-trim (buffer-string))))))
+           (exit-code (car output))
+           (err-msg (cdr output)))
+      (unless (zerop exit-code)
+        (user-error "Repository '%s' does not exist or is inaccessible: %s"
+                    cleaned (if (string-empty-p err-msg) "not found" err-msg)))
+      (gh-radar-cache-add-repo cleaned '("issues" "pr"))
+      (gh-radar-settings-render)
+      (message "[gh-radar] Added %s (issues & PRs enabled)" cleaned)
+      (gh-radar-process-fetch))))
 
 (defun gh-radar-settings-delete-repo ()
   "Remove the repository at point from radar tracking."
