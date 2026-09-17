@@ -21,6 +21,7 @@
 (require 'gh-radar-process)
 (require 'gh-radar-modeline)
 (require 'gh-radar-dashboard)
+(require 'gh-radar-settings)
 
 (defvar gh-radar--timer nil
   "Internal repeating timer for polling GitHub metrics.")
