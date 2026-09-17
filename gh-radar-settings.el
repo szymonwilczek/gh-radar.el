@@ -101,7 +101,7 @@
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
-            (propertize "[q] Return to dashboard"
+            (propertize "[b] Bell mode         [z] Hide zeros      [q] Return to dashboard"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
@@ -137,6 +137,33 @@
             "\n\n")
     (let ((end (point)))
       (push (list beg end :count-display nil) gh-radar-settings--rows))))
+
+(defun gh-radar-settings--insert-bell-modeline ()
+  "Insert bell modeline style toggle row."
+  (let* ((bell (gh-radar-cache-get-setting :bell-modeline gh-radar-bell-modeline))
+         (beg (point)))
+    (insert "    [b]  "
+            (propertize "Modeline Bell Style:          " 'face 'gh-radar-dashboard-unread-title)
+            (if bell
+                (propertize "[ ENABLED ]" 'face 'gh-radar-settings-on)
+              (propertize "[ DISABLED ]" 'face 'gh-radar-settings-off))
+            "\n\n")
+    (let ((end (point)))
+      (push (list beg end :bell-modeline nil) gh-radar-settings--rows))))
+
+(defun gh-radar-settings--insert-hide-zero-counts ()
+  "Insert hide-zero-counts toggle row."
+  (let* ((mode (gh-radar-cache-get-setting :hide-zero-counts gh-radar-hide-zero-counts))
+         (beg (point)))
+    (insert "    [z]  "
+            (propertize "Hide Zero Counts:             " 'face 'gh-radar-dashboard-unread-title)
+            (pcase mode
+              ('t (propertize "[ ALL ]" 'face 'gh-radar-settings-on))
+              ('(inbox) (propertize "[ INBOX ONLY ]" 'face 'gh-radar-settings-on))
+              (_ (propertize "[ DISABLED ]" 'face 'gh-radar-settings-off)))
+            "\n\n")
+    (let ((end (point)))
+      (push (list beg end :hide-zero-counts nil) gh-radar-settings--rows))))
 
 (defun gh-radar-settings--insert-repos ()
   "Insert repository configuration entries."
@@ -191,6 +218,8 @@
       (gh-radar-settings--insert-header)
       (gh-radar-settings--insert-notifications)
       (gh-radar-settings--insert-count-display)
+      (gh-radar-settings--insert-bell-modeline)
+      (gh-radar-settings--insert-hide-zero-counts)
       (gh-radar-settings--insert-repos)
       (setq gh-radar-settings--rows (nreverse gh-radar-settings--rows))
       (goto-char (point-min))
@@ -290,6 +319,39 @@
 
 (defalias 'gh-radar-toggle-count-display #'gh-radar-settings-toggle-count-display)
 
+;;;###autoload
+(defun gh-radar-settings-toggle-bell ()
+  "Toggle mode-line aggregate bell display."
+  (interactive)
+  (let* ((cur (gh-radar-cache-get-setting :bell-modeline gh-radar-bell-modeline))
+         (new (not cur)))
+    (gh-radar-cache-set-setting :bell-modeline new)
+    (gh-radar-settings-render)
+    (force-mode-line-update t)
+    (message "[gh-radar] Modeline bell style %s" (if new "enabled" "disabled"))))
+
+(defalias 'gh-radar-toggle-bell #'gh-radar-settings-toggle-bell)
+
+;;;###autoload
+(defun gh-radar-settings-toggle-hide-zeros ()
+  "Cycle zero counts hiding mode (disabled -> all -> inbox only -> disabled)."
+  (interactive)
+  (let* ((cur (gh-radar-cache-get-setting :hide-zero-counts gh-radar-hide-zero-counts))
+         (new (pcase cur
+                ('nil t)
+                ('t '(inbox))
+                (_ nil))))
+    (gh-radar-cache-set-setting :hide-zero-counts new)
+    (gh-radar-settings-render)
+    (force-mode-line-update t)
+    (message "[gh-radar] Hide zero counts: %s"
+             (pcase new
+               ('t "ALL")
+               ('(inbox) "INBOX ONLY")
+               (_ "DISABLED")))))
+
+(defalias 'gh-radar-toggle-hide-zeros #'gh-radar-settings-toggle-hide-zeros)
+
 (defun gh-radar-settings-smart-action ()
   "Execute the appropriate action for row at point on RET."
   (interactive)
@@ -297,6 +359,8 @@
       (pcase (nth 2 row)
         (:notifications (gh-radar-settings-toggle-notifications))
         (:count-display (gh-radar-settings-toggle-count-display))
+        (:bell-modeline (gh-radar-settings-toggle-bell))
+        (:hide-zero-counts (gh-radar-settings-toggle-hide-zeros))
         (:repo (gh-radar-settings-toggle-issues)))
     (gh-radar-settings-add-repo (read-string "Add repository (owner/name): "))))
 
@@ -334,6 +398,10 @@
     (define-key map (kbd "N") #'gh-radar-settings-toggle-notifications)
     (define-key map (kbd "c") #'gh-radar-settings-toggle-count-display)
     (define-key map (kbd "C") #'gh-radar-settings-toggle-count-display)
+    (define-key map (kbd "b") #'gh-radar-settings-toggle-bell)
+    (define-key map (kbd "B") #'gh-radar-settings-toggle-bell)
+    (define-key map (kbd "z") #'gh-radar-settings-toggle-hide-zeros)
+    (define-key map (kbd "Z") #'gh-radar-settings-toggle-hide-zeros)
     (define-key map (kbd "RET") #'gh-radar-settings-smart-action)
     (define-key map [return] #'gh-radar-settings-smart-action)
     (define-key map (kbd "q") #'gh-radar-settings-quit)
@@ -377,6 +445,10 @@
       (kbd "N") #'gh-radar-settings-toggle-notifications
       (kbd "c") #'gh-radar-settings-toggle-count-display
       (kbd "C") #'gh-radar-settings-toggle-count-display
+      (kbd "b") #'gh-radar-settings-toggle-bell
+      (kbd "B") #'gh-radar-settings-toggle-bell
+      (kbd "z") #'gh-radar-settings-toggle-hide-zeros
+      (kbd "Z") #'gh-radar-settings-toggle-hide-zeros
       (kbd "RET") #'gh-radar-settings-smart-action
       (kbd "q") #'gh-radar-settings-quit
       (kbd "s") #'gh-radar-settings-quit
