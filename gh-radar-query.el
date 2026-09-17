@@ -27,11 +27,17 @@
     (when (and (= (length parts) 2) (not (string-empty-p (car parts))) (not (string-empty-p (cadr parts))))
       (list (car parts) (cadr parts) (or targets '(:issues :pr))))))
 
+(defcustom gh-radar-recent-items-limit 10
+  "Number of recent issues and pull requests to fetch per repository."
+  :type 'integer
+  :group 'gh-radar)
+
 (defun gh-radar-query-build (repos)
   "Generate a consolidated GraphQL query string and alias map for REPOS list.
 Returns a cons cell (QUERY-STRING . ALIAS-MAP)."
   (let ((fields nil)
         (alias-map nil)
+        (limit (max 1 (or gh-radar-recent-items-limit 10)))
         (index 0))
     (dolist (entry repos)
       (when-let* ((parsed (gh-radar-query--parse-repo-entry entry)))
@@ -41,9 +47,13 @@ Returns a cons cell (QUERY-STRING . ALIAS-MAP)."
                (alias (format "repo_%d" index))
                (parts nil))
           (when (memq :issues targets)
-            (push "issues(states: OPEN) { totalCount }" parts))
+            (push (format "issues(states: OPEN, first: %d, orderBy: {field: CREATED_AT, direction: DESC}) { totalCount nodes { number title url createdAt author { login } } }"
+                          limit)
+                  parts))
           (when (memq :pr targets)
-            (push "pullRequests(states: OPEN) { totalCount }" parts))
+            (push (format "pullRequests(states: OPEN, first: %d, orderBy: {field: CREATED_AT, direction: DESC}) { totalCount nodes { number title url createdAt author { login } } }"
+                          limit)
+                  parts))
           (when parts
             (push (format "%s: repository(owner: \"%s\", name: \"%s\") { %s }"
                           alias owner name (string-join (nreverse parts) " "))
