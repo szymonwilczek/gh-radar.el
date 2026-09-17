@@ -9,7 +9,7 @@
 ;; License: GPL-3.0-or-later
 
 ;;; Commentary:
-;; A lightweight, modular radar for GitHub issues and pull requests
+;; Tracks open issue and pull request counts for specified GitHub repositories
 ;; using the gh CLI and single-shot batched GraphQL queries.
 
 ;;; Code:

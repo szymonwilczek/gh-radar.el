@@ -56,11 +56,15 @@ Calls optional CALLBACK with updated state data on success."
     (let* ((query-str (car built))
            (alias-map (cdr built))
            (stdout-buf (generate-new-buffer " *gh-radal-output*"))
-           (cmd (list gh-radal-gh-executable "api" "graphql" "-f" (concat "query=" query-str))))
+           (stderr-buf (generate-new-buffer " *gh-radal-stderr*"))
+           (cmd (list gh-radal-gh-executable "api" "graphql" "-f" (concat "query=" query-str)))
+           (process-environment (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
       (setq gh-radal-process--current
             (make-process
              :name "gh-radal"
              :buffer stdout-buf
+             :stderr stderr-buf
+             :connection-type 'pipe
              :command cmd
              :noquery t
              :sentinel
@@ -74,8 +78,15 @@ Calls optional CALLBACK with updated state data on success."
                            (when records
                              (gh-radal-state-update records)
                              (when callback (funcall callback gh-radal-state-data)))))
-                     (message "[gh-radal] gh api failed (code %d): %s" status (string-trim event))))
-                 (kill-buffer (process-buffer proc))
+                     (let ((err-msg (when (buffer-live-p stderr-buf)
+                                      (with-current-buffer stderr-buf
+                                        (string-trim (buffer-string))))))
+                       (message "[gh-radal] gh api failed (code %d): %s %s"
+                                status (string-trim event) (or err-msg "")))))
+                 (when (buffer-live-p (process-buffer proc))
+                   (kill-buffer (process-buffer proc)))
+                 (when (buffer-live-p stderr-buf)
+                   (kill-buffer stderr-buf))
                  (setq gh-radal-process--current nil))))))))
 
 (provide 'gh-radal-process)
