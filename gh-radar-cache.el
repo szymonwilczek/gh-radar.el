@@ -1,4 +1,4 @@
-;;; gh-radar-cache.el --- Persistent disk cache for gh-radar -*- lexical-binding: t; -*-
+;;; gh-radar-cache.el --- Persistent disk cache -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
@@ -24,13 +24,22 @@
   "Normalize RAW loaded data into standard plist format."
   (cond
    ((null raw)
-    (list :version 1 :settings (list :track-notifications t :count-display 'all) :repos nil :items nil))
+    (list :version 1
+          :settings (list :track-notifications t :count-display 'all)
+          :repos nil
+          :items nil))
    ((and (consp raw) (keywordp (car raw)))
     raw)
    ((consp raw)
-    (list :version 1 :settings (list :track-notifications t :count-display 'all) :repos nil :items raw))
+    (list :version 1
+          :settings (list :track-notifications t :count-display 'all)
+          :repos nil
+          :items raw))
    (t
-    (list :version 1 :settings (list :track-notifications t :count-display 'all) :repos nil :items nil))))
+    (list :version 1
+          :settings (list :track-notifications t :count-display 'all)
+          :repos nil
+          :items nil))))
 
 (defun gh-radar-cache-load ()
   "Load persisted radar configuration and state from `gh-radar-cache-file`.
@@ -40,7 +49,8 @@ Returns the normalized cache plist."
           (with-temp-buffer
             (insert-file-contents gh-radar-cache-file)
             (goto-char (point-min))
-            (setq gh-radar-cache--data (gh-radar-cache--normalize (read (current-buffer)))))
+            (setq gh-radar-cache--data
+                  (gh-radar-cache--normalize (read (current-buffer)))))
         (error
          (message "[gh-radar] Failed to read cache file: %s" err)
          (setq gh-radar-cache--data (gh-radar-cache--normalize nil))))
@@ -64,7 +74,9 @@ Returns the normalized cache plist."
             (when (and dir (not (file-directory-p dir)))
               (make-directory dir t))
             (with-temp-file gh-radar-cache-file
-              (insert ";; gh-radar persistent configuration & cache -*- lisp-data -*-\n")
+              (insert
+               (concat ";; gh-radar persistent configuration & cache"
+                       " -*- lisp-data -*-\n"))
               (prin1 payload (current-buffer))
               (insert "\n")))
         (error
@@ -131,7 +143,8 @@ Returns the normalized cache plist."
     (setq settings (plist-put settings key val))
     (setq data (plist-put data :settings settings))
     (setq gh-radar-cache--data data)
-    (when (and (eq key :track-notifications) (boundp 'gh-radar-track-notifications))
+    (when (and (eq key :track-notifications)
+               (boundp 'gh-radar-track-notifications))
       (setq gh-radar-track-notifications val))
     (when (and (eq key :count-display) (boundp 'gh-radar-count-display))
       (setq gh-radar-count-display val))
@@ -149,7 +162,9 @@ Returns the normalized cache plist."
 
 (defun gh-radar-cache-set-icon (type name)
   "Set icon NAME for TYPE in cache and save."
-  (let* ((type-sym (if (keywordp type) (intern (substring (symbol-name type) 1)) type))
+  (let* ((type-sym (if (keywordp type)
+                       (intern (substring (symbol-name type) 1))
+                     type))
          (icons (copy-sequence (gh-radar-cache-get-setting :icons nil)))
          (existing (assq type-sym icons)))
     (if existing
