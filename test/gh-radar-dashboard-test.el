@@ -68,5 +68,21 @@
       (when (buffer-live-p buf)
         (kill-buffer buf)))))
 
+(ert-deftest gh-radar-dashboard-test-render-with-error ()
+  "Test rendering dashboard buffer with active fetch error banner."
+  (let ((gh-radar-state-data nil)
+        (gh-radar-track-notifications nil)
+        (gh-radar-state-last-error "gh: failed to authenticate")
+        (buf (get-buffer-create "*gh-radar-test-dashboard*")))
+    (unwind-protect
+        (with-current-buffer buf
+          (gh-radar-dashboard-mode)
+          (gh-radar-dashboard-render)
+          (let ((content (buffer-string)))
+            (should (string-match-p "Offline / Error" content))
+            (should (string-match-p "failed to authenticate" content))))
+      (when (buffer-live-p buf)
+        (kill-buffer buf)))))
+
 (provide 'gh-radar-dashboard-test)
 ;;; gh-radar-dashboard-test.el ends here

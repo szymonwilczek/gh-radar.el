@@ -130,7 +130,8 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
 (defun gh-radar-modeline-format ()
   "Format radar metrics and notifications into a mode-line string."
   (when (or gh-radar-state-data
-            (and gh-radar-track-notifications gh-radar-state-notifications))
+            (and gh-radar-track-notifications gh-radar-state-notifications)
+            gh-radar-state-last-error)
     (let ((parts nil))
       (if gh-radar-bell-modeline
           (let* ((inbox-cnt
@@ -201,6 +202,12 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
                 (push (gh-radar-modeline--format-segment
                        pr-icon tot-prs tot-new-prs)
                       parts))))))
+      (when gh-radar-state-last-error
+        (push (propertize "!" 'face 'error
+                          'help-echo
+                          (format "gh-radar error: %s"
+                                  gh-radar-state-last-error))
+              parts))
       (when parts
         (let* ((prefix-str
                 (when gh-radar-show-prefix

@@ -80,5 +80,15 @@
       (should (string-match-p "7" formatted))
       (should (string-match-p "\\+2" formatted)))))
 
+(ert-deftest gh-radar-modeline-test-error-indicator ()
+  "Test mode-line displays error indicator when last error is set."
+  (let ((gh-radar-state-data nil)
+        (gh-radar-state-notifications nil)
+        (gh-radar-show-prefix nil)
+        (gh-radar-state-last-error "Connection refused"))
+    (let ((formatted (gh-radar-modeline-format)))
+      (should formatted)
+      (should (string-match-p "!" formatted)))))
+
 (provide 'gh-radar-modeline-test)
 ;;; gh-radar-modeline-test.el ends here

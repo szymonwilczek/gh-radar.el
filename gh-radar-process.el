@@ -127,12 +127,17 @@ Calls optional CALLBACK with updated state data on completion."
                                    (gh-radar-process--parse-response
                                     output alias-map)))
                              (when records
+                               (gh-radar-state-clear-error)
                                (gh-radar-state-update records))
                              (when callback
                                (funcall callback gh-radar-state-data))))
                        (let ((err-msg (when (buffer-live-p stderr-buf)
                                         (with-current-buffer stderr-buf
                                           (string-trim (buffer-string))))))
+                         (gh-radar-state-set-error
+                          (or (and err-msg (not (string-empty-p err-msg))
+                                   err-msg)
+                              (format "gh api failed (code %d)" status)))
                          (message "[gh-radar] gh api failed (code %d): %s %s"
                                   status (string-trim event) (or err-msg "")))
                        (when callback (funcall callback nil))))
@@ -205,6 +210,11 @@ Calls optional CALLBACK with updated notification state on success."
                    (let ((err-msg (when (buffer-live-p stderr-buf)
                                     (with-current-buffer stderr-buf
                                       (string-trim (buffer-string))))))
+                     (gh-radar-state-set-error
+                      (or (and err-msg (not (string-empty-p err-msg))
+                               err-msg)
+                          (format "notifications fetch failed (code %d)"
+                                  status)))
                      (message
                       "[gh-radar] notifications fetch failed (code %d): %s %s"
                       status (string-trim event) (or err-msg "")))

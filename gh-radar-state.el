@@ -27,6 +27,19 @@ Each item is of the form:
 Format:
   (:count INT :new INT :timestamp TIME :items LIST)")
 
+(defvar gh-radar-state-last-error nil
+  "Last error message or status from subprocess execution, nil if healthy.")
+
+(defun gh-radar-state-set-error (err)
+  "Record ERR as the last fetch error and update mode-line."
+  (setq gh-radar-state-last-error err)
+  (force-mode-line-update t))
+
+(defun gh-radar-state-clear-error ()
+  "Clear the last fetch error state and update mode-line."
+  (setq gh-radar-state-last-error nil)
+  (force-mode-line-update t))
+
 (defvar gh-radar-update-hook nil
   "Hook run after gh-radar finishes updating state.
 Each function is called with the full `gh-radar-state-data` alist.")
@@ -181,6 +194,7 @@ Each function is called with the full `gh-radar-state-data` alist.")
                           :timestamp (current-time)))
               updated-alist)))
     (setq gh-radar-state-data (nreverse updated-alist))
+    (setq gh-radar-state-last-error nil)
     (when (and gh-radar-notify-on-new
                (> (+ newly-detected-issues newly-detected-prs) 0))
       (let ((msg (format "New activity detected: +%d issues, +%d pull requests"
@@ -286,6 +300,7 @@ Each function is called with the full `gh-radar-state-data` alist.")
                 :new new-count
                 :timestamp (current-time)
                 :items items))
+    (setq gh-radar-state-last-error nil)
     (when (and gh-radar-notify-on-new (> new-count 0))
       (let ((msg (format "New notifications detected: +%d unread" new-count)))
         (message "[gh-radar] %s" msg)
@@ -297,6 +312,7 @@ Each function is called with the full `gh-radar-state-data` alist.")
   "Reset all cached radar metrics and notifications."
   (setq gh-radar-state-data nil)
   (setq gh-radar-state-notifications nil)
+  (setq gh-radar-state-last-error nil)
   (force-mode-line-update t))
 
 (gh-radar-state-load-cache)

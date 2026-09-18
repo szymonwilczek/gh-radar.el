@@ -338,7 +338,14 @@
             "  "
             (propertize (string-join (nreverse meta-parts) " · ")
                         'face 'gh-radar-dashboard-meta)
-            "\n\n"
+            "\n")
+    (when gh-radar-state-last-error
+      (insert "  "
+              (propertize (format "! Offline / Error: %s"
+                                  gh-radar-state-last-error)
+                          'face 'error)
+              "\n"))
+    (insert "\n"
             "  "
             (propertize "[d] Dismiss       [D] Dismiss all     [RET] Open"
                         'face 'gh-radar-dashboard-meta)
