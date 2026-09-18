@@ -1,11 +1,11 @@
-;;; gh-radar-state.el --- State management and delta tracking -*- lexical-binding: t; -*-
+;;; gh-radar-state.el --- State management -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
 ;; License: GPL-3.0-or-later
 
 ;;; Commentary:
-;; In-memory state cache, persistent unread queue tracking, and subscriber hooks.
+;; In-memory state cache, persistent unread queue tracking, and hooks.
 
 ;;; Code:
 
@@ -40,7 +40,8 @@ Each function is called with the full `gh-radar-state-data` alist.")
   (when-let* ((cached (gh-radar-cache-load)))
     (when-let* ((repos (plist-get cached :repos)))
       (setq gh-radar-repos repos))
-    (let ((notif (gh-radar-cache-get-setting :track-notifications :unspecified)))
+    (let ((notif
+           (gh-radar-cache-get-setting :track-notifications :unspecified)))
       (unless (eq notif :unspecified)
         (setq gh-radar-track-notifications notif)))
     (let ((cd (gh-radar-cache-get-setting :count-display :unspecified)))
@@ -105,10 +106,14 @@ Each function is called with the full `gh-radar-state-data` alist.")
         (if (null reference)
             ;; first time seeing this repository: establish baseline
             (let ((max-i (if incoming-issues
-                             (apply #'max (mapcar (lambda (x) (plist-get x :number)) incoming-issues))
+                             (apply #'max
+                                    (mapcar (lambda (x) (plist-get x :number))
+                                            incoming-issues))
                            0))
                   (max-p (if incoming-prs
-                             (apply #'max (mapcar (lambda (x) (plist-get x :number)) incoming-prs))
+                             (apply #'max
+                                    (mapcar (lambda (x) (plist-get x :number))
+                                            incoming-prs))
                            0)))
               (setq last-issue max-i
                     last-pr max-p
@@ -143,8 +148,14 @@ Each function is called with the full `gh-radar-state-data` alist.")
                   (setq newly-detected-prs (1+ newly-detected-prs)))))))
 
         ;; keep unread items sorted descending by number
-        (setq unread-issues (sort unread-issues (lambda (a b) (> (plist-get a :number) (plist-get b :number))))
-              unread-prs (sort unread-prs (lambda (a b) (> (plist-get a :number) (plist-get b :number)))))
+        (setq unread-issues
+              (sort unread-issues
+                    (lambda (a b) (> (plist-get a :number)
+                                     (plist-get b :number))))
+              unread-prs
+              (sort unread-prs
+                    (lambda (a b) (> (plist-get a :number)
+                                     (plist-get b :number)))))
 
         ;; persist to disk cache
         (gh-radar-cache-put repo
@@ -170,7 +181,8 @@ Each function is called with the full `gh-radar-state-data` alist.")
                           :timestamp (current-time)))
               updated-alist)))
     (setq gh-radar-state-data (nreverse updated-alist))
-    (when (and gh-radar-notify-on-new (> (+ newly-detected-issues newly-detected-prs) 0))
+    (when (and gh-radar-notify-on-new
+               (> (+ newly-detected-issues newly-detected-prs) 0))
       (let ((msg (format "New activity detected: +%d issues, +%d pull requests"
                          newly-detected-issues newly-detected-prs)))
         (message "[gh-radar] %s" msg)
@@ -199,8 +211,12 @@ Each function is called with the full `gh-radar-state-data` alist.")
            (ui (plist-get data :unread-issues))
            (up (plist-get data :unread-prs)))
       (if (eq type :issue)
-          (setq ui (cl-remove-if (lambda (x) (= (plist-get x :number) number)) ui))
-        (setq up (cl-remove-if (lambda (x) (= (plist-get x :number) number)) up)))
+          (setq ui (cl-remove-if (lambda (x)
+                                   (= (plist-get x :number) number))
+                                 ui))
+        (setq up (cl-remove-if (lambda (x)
+                                 (= (plist-get x :number) number))
+                               up)))
       (setcdr entry (plist-put data :unread-issues ui))
       (setcdr entry (plist-put (cdr entry) :unread-prs up))
       (setcdr entry (plist-put (cdr entry) :new-issues (length ui)))
@@ -208,7 +224,8 @@ Each function is called with the full `gh-radar-state-data` alist.")
       (gh-radar-cache-put repo
                           (list :issues (plist-get data :issues)
                                 :pr (plist-get data :pr)
-                                :last-seen-issue (plist-get data :last-seen-issue)
+                                :last-seen-issue
+                                (plist-get data :last-seen-issue)
                                 :last-seen-pr (plist-get data :last-seen-pr)
                                 :unread-issues ui
                                 :unread-prs up))
@@ -226,7 +243,8 @@ Each function is called with the full `gh-radar-state-data` alist.")
       (gh-radar-cache-put repo
                           (list :issues (plist-get data :issues)
                                 :pr (plist-get data :pr)
-                                :last-seen-issue (plist-get data :last-seen-issue)
+                                :last-seen-issue
+                                (plist-get data :last-seen-issue)
                                 :last-seen-pr (plist-get data :last-seen-pr)
                                 :unread-issues nil
                                 :unread-prs nil))
@@ -245,7 +263,8 @@ Each function is called with the full `gh-radar-state-data` alist.")
       (gh-radar-cache-put repo
                           (list :issues (plist-get data :issues)
                                 :pr (plist-get data :pr)
-                                :last-seen-issue (plist-get data :last-seen-issue)
+                                :last-seen-issue
+                                (plist-get data :last-seen-issue)
                                 :last-seen-pr (plist-get data :last-seen-pr)
                                 :unread-issues nil
                                 :unread-prs nil))))
@@ -259,7 +278,9 @@ Each function is called with the full `gh-radar-state-data` alist.")
   "Update `gh-radar-state-notifications` with COUNT and optional ITEMS list."
   (let* ((old-count (or (plist-get gh-radar-state-notifications :count) 0))
          (cur-count (or count 0))
-         (new-count (if gh-radar-state-notifications (max 0 (- cur-count old-count)) 0)))
+         (new-count (if gh-radar-state-notifications
+                        (max 0 (- cur-count old-count))
+                      0)))
     (setq gh-radar-state-notifications
           (list :count cur-count
                 :new new-count
