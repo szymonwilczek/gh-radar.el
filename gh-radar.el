@@ -1,4 +1,4 @@
-;;; gh-radar.el --- GitHub issues and pull requests radar -*- lexical-binding: t; -*-
+;;; gh-radar.el --- GitHub issues and PRs radar -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
@@ -29,10 +29,13 @@
 (defun gh-radar-start-timer ()
   "Start or restart the periodic background fetch timer."
   (gh-radar-stop-timer)
-  (when (and (or gh-radar-repos gh-radar-track-notifications) (> gh-radar-interval 0))
+  (when (and (or gh-radar-repos gh-radar-track-notifications)
+             (> gh-radar-interval 0))
     (run-with-idle-timer 1.5 nil #'gh-radar-process-fetch)
     (setq gh-radar--timer
-          (run-at-time gh-radar-interval gh-radar-interval #'gh-radar-process-fetch))))
+          (run-at-time gh-radar-interval
+                       gh-radar-interval
+                       #'gh-radar-process-fetch))))
 
 (defun gh-radar-stop-timer ()
   "Cancel the active background fetch timer if running."
@@ -42,7 +45,7 @@
 
 ;;;###autoload
 (define-minor-mode gh-radar-mode
-  "Global minor mode to monitor GitHub issues and pull requests in the background."
+  "Global minor mode to monitor GitHub issues and PRs in the background."
   :global t
   :group 'gh-radar
   (if gh-radar-mode
@@ -67,13 +70,18 @@
                      (gh-radar-cache-get-repos))
                    gh-radar-repos)))
     (unless repos
-      (user-error "No repositories configured in `gh-radar-repos` or disk cache"))
+      (user-error
+       "No repositories configured in `gh-radar-repos` or disk cache"))
     (let* ((repo-names (mapcar #'car repos))
            (repo (completing-read "Open in browser: " repo-names nil t))
-           (target (completing-read (format "Open for %s: " repo) '("issues" "pulls" "repo") nil t "issues"))
+           (target (completing-read (format "Open for %s: " repo)
+                                    '("issues" "pulls" "repo")
+                                    nil t "issues"))
            (url (cond
-                 ((string= target "issues") (format "https://github.com/%s/issues" repo))
-                 ((string= target "pulls") (format "https://github.com/%s/pulls" repo))
+                 ((string= target "issues")
+                  (format "https://github.com/%s/issues" repo))
+                 ((string= target "pulls")
+                  (format "https://github.com/%s/pulls" repo))
                  (t (format "https://github.com/%s" repo)))))
       (browse-url url))))
 
