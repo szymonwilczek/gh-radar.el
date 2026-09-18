@@ -20,6 +20,8 @@ Asynchronous GitHub radar for GNU Emacs. Tracks open issues, pull requests, and 
 - *Interactive Dashboard* (~M-x gh-radar-dashboard~): Overview with keyboard navigation, and unread item tracking.
 - *Settings Buffer* (~M-x gh-radar-settings~): Repository management, customization, and toggleable modes persisted across sessions.
 - *Desktop Notifications:* System notifications via D-Bus (=notifications-notify=) or =notify-send= when new issues or PRs arrive.
+- *Error and Offline Detection:* Status indicator in mode-line and dashboard when connectivity fails or API errors occur.
+- *GitHub Enterprise Support:* Configurable host target for GHE instances.
 
 ** Screenshots
 
@@ -94,6 +96,8 @@ Asynchronous GitHub radar for GNU Emacs. Tracks open issues, pull requests, and 
     :custom
     ;; Polling and backend
     (gh-radar-interval 300)                                ;; Poll every 5 minutes (default: 600)
+    (gh-radar-github-host "github.com")                    ;; "github.com" or GHE host
+    (gh-radar-recent-items-limit 10)                       ;; Max recent items per repo (default: 10)
     (gh-radar-desktop-notification-backend 'notifications) ;; 'notifications (D-Bus), 'notify-send, or nil
     (gh-radar-notify-on-new t)                             ;; Echo message on increments
 
@@ -117,12 +121,13 @@ If your mode-line does not automatically evaluate minor mode segments, add ~gh-r
   (add-to-list 'mode-line-format '(:eval (gh-radar-modeline-format)) t)
 #+end_src
 
-** Options & Variables
+** Options and Variables
 
 *** General and Polling Engine
 | Variable                              | Default                  | Description                                                        |
 |---------------------------------------+--------------------------+--------------------------------------------------------------------|
 | ~gh-radar-interval~                     | ~600~                      | Background polling interval in seconds.                            |
+| ~gh-radar-github-host~                  | ~"github.com"~             | Target GitHub host (supports GitHub Enterprise Server).            |
 | ~gh-radar-gh-executable~                | ~"gh"~                     | Command name or path to the GitHub CLI binary.                     |
 | ~gh-radar-cache-file~                   | ~".../gh-radar-cache.eld"~ | Path to persistent configuration and seen-item disk cache.         |
 | ~gh-radar-recent-items-limit~           | ~10~                       | Max recent issues and PRs fetched per repository.                  |
@@ -158,6 +163,7 @@ If your mode-line does not automatically evaluate minor mode segments, add ~gh-r
 | ~M-x gh-radar-refresh~              | Trigger immediate asynchronous GraphQL fetch for all tracked repositories. |
 | ~M-x gh-radar-toggle-count-display~ | Toggle between displaying all counts and only new delta counts.            |
 | ~M-x gh-radar-mode~                 | Global minor mode managing background timer and mode-line segment.         |
+| ~?~ (in dashboard or settings)      | Open side-window popup displaying full keyboard bindings and navigation.   |
 
 ** License
 [[file:LICENSE][GNU General Public License v3.0 (GPL-3.0-or-later)]]
