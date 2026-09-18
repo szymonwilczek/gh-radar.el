@@ -67,5 +67,20 @@
       (when (file-exists-p tmp)
         (delete-file tmp)))))
 
+(ert-deftest gh-radar-settings-test-limit ()
+  "Test configuring recent items limit in settings."
+  (let* ((tmp (make-temp-file "gh-radar-settings-test" nil ".eld"))
+         (gh-radar-cache-file tmp)
+         (gh-radar-cache--data nil)
+         (gh-radar-recent-items-limit 10))
+    (unwind-protect
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (&rest _) "25")))
+          (gh-radar-settings-set-limit)
+          (should (= gh-radar-recent-items-limit 25))
+          (should (= (gh-radar-cache-get-setting :recent-items-limit) 25)))
+      (when (file-exists-p tmp)
+        (delete-file tmp)))))
+
 (provide 'gh-radar-settings-test)
 ;;; gh-radar-settings-test.el ends here

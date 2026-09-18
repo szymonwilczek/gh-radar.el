@@ -117,7 +117,7 @@
             "\n"
             "  "
             (propertize
-             "[q] Return to dashboard"
+             "[l] Items limit       [q] Return to dashboard"
              'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
@@ -202,6 +202,20 @@
             "\n\n")
     (let ((end (point)))
       (push (list beg end :host nil) gh-radar-settings--rows))))
+
+(defun gh-radar-settings--insert-limit ()
+  "Insert recent items limit configuration row."
+  (let* ((limit (or gh-radar-recent-items-limit
+                    (gh-radar-cache-get-setting :recent-items-limit 10)))
+         (beg (point)))
+    (insert "    [l]  "
+            (propertize (format "%-30s" "Recent Items Limit:")
+                        'face 'gh-radar-dashboard-unread-title)
+            (propertize (format "[ %d ]" limit)
+                        'face 'gh-radar-dashboard-meta)
+            "\n\n")
+    (let ((end (point)))
+      (push (list beg end :limit nil) gh-radar-settings--rows))))
 
 (defun gh-radar-settings--insert-icons ()
   "Insert icon glyph configuration entries."
@@ -303,6 +317,7 @@
       (gh-radar-settings--insert-bell-modeline)
       (gh-radar-settings--insert-hide-zero-counts)
       (gh-radar-settings--insert-host)
+      (gh-radar-settings--insert-limit)
       (gh-radar-settings--insert-icons)
       (gh-radar-settings--insert-repos)
       (setq gh-radar-settings--rows (nreverse gh-radar-settings--rows))
@@ -520,6 +535,25 @@
       (gh-radar-settings-render)
       (message "[gh-radar] GitHub host set to: %s" new))))
 
+;;;###autoload
+(defun gh-radar-settings-set-limit ()
+  "Prompt to configure recent items limit per repository."
+  (interactive)
+  (let* ((cur (or gh-radar-recent-items-limit
+                  (gh-radar-cache-get-setting :recent-items-limit 10)))
+         (input (string-trim
+                 (read-string
+                  (format "Recent items limit (current: %d): " cur)
+                  nil nil (number-to-string cur))))
+         (val (string-to-number input)))
+    (if (> val 0)
+        (progn
+          (setq gh-radar-recent-items-limit val)
+          (gh-radar-cache-set-setting :recent-items-limit val)
+          (gh-radar-settings-render)
+          (message "[gh-radar] Recent items limit set to: %d" val))
+      (user-error "Limit must be a positive integer"))))
+
 (defun gh-radar-settings-smart-action ()
   "Execute the appropriate action for row at point on RET."
   (interactive)
@@ -530,6 +564,7 @@
         (:bell-modeline (gh-radar-settings-toggle-bell))
         (:hide-zero-counts (gh-radar-settings-toggle-hide-zeros))
         (:host (gh-radar-settings-set-host))
+        (:limit (gh-radar-settings-set-limit))
         (:icon (gh-radar-settings-set-icon (nth 3 row)))
         (:repo (gh-radar-settings-toggle-issues)))
     (gh-radar-settings-add-repo (read-string "Add repository (owner/name): "))))
@@ -574,6 +609,8 @@
     (define-key map (kbd "Z") #'gh-radar-settings-toggle-hide-zeros)
     (define-key map (kbd "h") #'gh-radar-settings-set-host)
     (define-key map (kbd "H") #'gh-radar-settings-set-host)
+    (define-key map (kbd "l") #'gh-radar-settings-set-limit)
+    (define-key map (kbd "L") #'gh-radar-settings-set-limit)
     (define-key map (kbd "I") #'gh-radar-settings-set-icon)
     (define-key map (kbd "RET") #'gh-radar-settings-smart-action)
     (define-key map [return] #'gh-radar-settings-smart-action)
@@ -624,6 +661,8 @@
       (kbd "Z") #'gh-radar-settings-toggle-hide-zeros
       (kbd "h") #'gh-radar-settings-set-host
       (kbd "H") #'gh-radar-settings-set-host
+      (kbd "l") #'gh-radar-settings-set-limit
+      (kbd "L") #'gh-radar-settings-set-limit
       (kbd "I") #'gh-radar-settings-set-icon
       (kbd "RET") #'gh-radar-settings-smart-action
       (kbd "q") #'gh-radar-settings-quit
