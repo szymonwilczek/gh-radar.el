@@ -1,11 +1,11 @@
-;;; gh-radar-process.el --- Asynchronous gh CLI invocation -*- lexical-binding: t; -*-
+;;; gh-radar-process.el --- Asynchronous gh CLI -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
 ;; License: GPL-3.0-or-later
 
 ;;; Commentary:
-;; Spawns asynchronous gh api processes, parses responses, and updates state.
+;; Subprocess management for invoking GitHub CLI asynchronously.
 
 ;;; Code:
 
@@ -17,34 +17,32 @@
 (require 'gh-radar-state)
 
 (defvar gh-radar-process--current nil
-  "Current active gh-radar process instance.")
+  "Current active gh-radar repository process instance.")
 
-(defun gh-radar-process--extract-nodes (connection-node type)
-  "Extract item plists from CONNECTION-NODE with TYPE (:issue or :pr)."
-  (when (hash-table-p connection-node)
-    (let ((nodes (gethash "nodes" connection-node))
-          (items nil))
-      (when (seqp nodes)
-        (seq-doseq (n nodes)
-          (when (hash-table-p n)
-            (let* ((num (gethash "number" n))
-                   (title (gethash "title" n))
-                   (url (gethash "url" n))
-                   (created-at (gethash "createdAt" n))
-                   (author-node (gethash "author" n))
-                   (author (when (hash-table-p author-node)
-                             (gethash "login" author-node))))
-              (push (list :number num
-                          :title title
-                          :url url
-                          :type type
-                          :created-at created-at
-                          :author (or author "ghost"))
-                    items)))))
-      (nreverse items))))
+(defun gh-radar-process--extract-nodes (connection type)
+  "Extract issue/PR node plists from CONNECTION hash-table for TYPE.
+TYPE is either `:issue' or `:pr'."
+  (when (hash-table-p connection)
+    (let* ((nodes (gethash "nodes" connection))
+           (node-list (if (vectorp nodes) (append nodes nil) nodes)))
+      (delq nil
+            (mapcar
+             (lambda (node)
+               (when (hash-table-p node)
+                 (let* ((author (gethash "author" node))
+                        (author-login (when (hash-table-p author)
+                                        (gethash "login" author))))
+                   (list :number (gethash "number" node)
+                         :title (gethash "title" node)
+                         :url (gethash "url" node)
+                         :created-at (gethash "createdAt" node)
+                         :author (or author-login "ghost")
+                         :type type))))
+             node-list)))))
 
 (defun gh-radar-process--parse-response (raw-json alias-map)
-  "Parse RAW-JSON string from GitHub API according to ALIAS-MAP."
+  "Parse RAW-JSON string from GraphQL response using ALIAS-MAP.
+Returns a list of repository metric plists."
   (condition-case err
       (let* ((parsed (if (fboundp 'json-parse-string)
                          (json-parse-string raw-json :object-type 'hash-table)
@@ -60,10 +58,16 @@
               (when (hash-table-p node)
                 (let* ((issues-node (gethash "issues" node))
                        (pr-node (gethash "pullRequests" node))
-                       (issues-cnt (when (hash-table-p issues-node) (gethash "totalCount" issues-node)))
-                       (pr-cnt (when (hash-table-p pr-node) (gethash "totalCount" pr-node)))
-                       (recent-issues (gh-radar-process--extract-nodes issues-node :issue))
-                       (recent-prs (gh-radar-process--extract-nodes pr-node :pr)))
+                       (issues-cnt
+                        (when (hash-table-p issues-node)
+                          (gethash "totalCount" issues-node)))
+                       (pr-cnt
+                        (when (hash-table-p pr-node)
+                          (gethash "totalCount" pr-node)))
+                       (recent-issues
+                        (gh-radar-process--extract-nodes issues-node :issue))
+                       (recent-prs
+                        (gh-radar-process--extract-nodes pr-node :pr)))
                   (push (list :repo (plist-get meta :repo)
                               :owner (plist-get meta :owner)
                               :name (plist-get meta :name)
@@ -78,9 +82,10 @@
      nil)))
 
 (defun gh-radar-process-fetch-repos (&optional callback)
-  "Trigger asynchronous GraphQL fetch for `gh-radar-repos`.
+  "Trigger asynchronous GraphQL fetch for `gh-radar-repos'.
 Calls optional CALLBACK with updated state data on completion."
-  (when (and gh-radar-process--current (process-live-p gh-radar-process--current))
+  (when (and gh-radar-process--current
+             (process-live-p gh-radar-process--current))
     (delete-process gh-radar-process--current))
   (if-let* ((built (gh-radar-query-build gh-radar-repos)))
       (let* ((default-directory (expand-file-name "~/"))
@@ -88,8 +93,10 @@ Calls optional CALLBACK with updated state data on completion."
              (alias-map (cdr built))
              (stdout-buf (generate-new-buffer " *gh-radar-output*"))
              (stderr-buf (generate-new-buffer " *gh-radar-stderr*"))
-             (cmd (list gh-radar-gh-executable "api" "graphql" "-f" (concat "query=" query-str)))
-             (process-environment (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
+             (cmd (list gh-radar-gh-executable "api" "graphql"
+                        "-f" (concat "query=" query-str)))
+             (process-environment
+              (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
         (setq gh-radar-process--current
               (make-process
                :name "gh-radar"
@@ -105,10 +112,13 @@ Calls optional CALLBACK with updated state data on completion."
                      (if (zerop status)
                          (with-current-buffer (process-buffer proc)
                            (let* ((output (buffer-string))
-                                  (records (gh-radar-process--parse-response output alias-map)))
+                                  (records
+                                   (gh-radar-process--parse-response
+                                    output alias-map)))
                              (when records
                                (gh-radar-state-update records))
-                             (when callback (funcall callback gh-radar-state-data))))
+                             (when callback
+                               (funcall callback gh-radar-state-data))))
                        (let ((err-msg (when (buffer-live-p stderr-buf)
                                         (with-current-buffer stderr-buf
                                           (string-trim (buffer-string))))))
@@ -152,7 +162,8 @@ Calls optional CALLBACK with updated notification state on success."
          (stdout-buf (generate-new-buffer " *gh-radar-notifications*"))
          (stderr-buf (generate-new-buffer " *gh-radar-notifications-err*"))
          (cmd (list gh-radar-gh-executable "api" "notifications"))
-         (process-environment (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
+         (process-environment
+          (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
     (setq gh-radar-process--notifications
           (make-process
            :name "gh-radar-notifications"
@@ -168,20 +179,24 @@ Calls optional CALLBACK with updated notification state on success."
                  (if (zerop status)
                      (with-current-buffer (process-buffer proc)
                        (let* ((raw (buffer-string))
-                              (items (condition-case _
-                                         (if (fboundp 'json-parse-string)
-                                             (json-parse-string raw :array-type 'list)
-                                           (let ((json-array-type 'list))
-                                             (json-read-from-string raw)))
-                                       (error nil)))
+                              (items
+                               (condition-case _
+                                   (if (fboundp 'json-parse-string)
+                                       (json-parse-string
+                                        raw :array-type 'list)
+                                     (let ((json-array-type 'list))
+                                       (json-read-from-string raw)))
+                                 (error nil)))
                               (count (if (listp items) (length items) 0)))
                          (gh-radar-state-update-notifications count items)
-                         (when callback (funcall callback gh-radar-state-notifications))))
+                         (when callback
+                           (funcall callback gh-radar-state-notifications))))
                    (let ((err-msg (when (buffer-live-p stderr-buf)
                                     (with-current-buffer stderr-buf
                                       (string-trim (buffer-string))))))
-                     (message "[gh-radar] notifications fetch failed (code %d): %s %s"
-                              status (string-trim event) (or err-msg "")))
+                     (message
+                      "[gh-radar] notifications fetch failed (code %d): %s %s"
+                      status (string-trim event) (or err-msg "")))
                    (when callback (funcall callback nil))))
                (when (buffer-live-p (process-buffer proc))
                  (kill-buffer (process-buffer proc)))
