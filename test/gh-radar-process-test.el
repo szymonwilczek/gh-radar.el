@@ -72,5 +72,21 @@
     (should-not (gh-radar-process--parse-response
                  "{\"data\": null}" alias-map))))
 
+(ert-deftest gh-radar-process-test-parse-response-errors ()
+  "Test handling GraphQL errors array with partial data."
+  (let* ((json (concat "{\"data\": {\"repo_0\": "
+                       "{\"issues\": {\"totalCount\": 3, \"nodes\": []}, "
+                       "\"pullRequests\": {\"totalCount\": 1, "
+                       "\"nodes\": []}}, "
+                       "\"repo_1\": null}, "
+                       "\"errors\": [{\"message\": "
+                       "\"Repo repo_1 not found\"}]}"))
+         (alias-map '(("repo_0" . (:owner "o" :name "r0" :repo "o/r0"))
+                      ("repo_1" . (:owner "o" :name "r1" :repo "o/r1")))))
+    (let ((parsed (gh-radar-process--parse-response json alias-map)))
+      (should (= (length parsed) 1))
+      (should (equal (plist-get (car parsed) :repo) "o/r0"))
+      (should (= (plist-get (car parsed) :issues) 3)))))
+
 (provide 'gh-radar-process-test)
 ;;; gh-radar-process-test.el ends here

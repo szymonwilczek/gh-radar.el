@@ -49,7 +49,18 @@ Returns a list of repository metric plists."
                        (let ((json-object-type 'hash-table))
                          (json-read-from-string raw-json))))
              (data (when (hash-table-p parsed) (gethash "data" parsed)))
+             (errors (when (hash-table-p parsed) (gethash "errors" parsed)))
              (records nil))
+        (when errors
+          (let ((err-msgs
+                 (mapconcat
+                  (lambda (e)
+                    (if (hash-table-p e)
+                        (or (gethash "message" e) "Unknown GraphQL error")
+                      (format "%s" e)))
+                  (if (vectorp errors) (append errors nil) errors)
+                  "; ")))
+            (message "[gh-radar] GraphQL error: %s" err-msgs)))
         (when (hash-table-p data)
           (dolist (mapping alias-map)
             (let* ((alias (car mapping))
