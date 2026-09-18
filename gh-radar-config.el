@@ -38,6 +38,13 @@ Default is 600 seconds (10 minutes)."
   :type 'string
   :group 'gh-radar)
 
+(defcustom gh-radar-github-host
+  (or (getenv "GH_HOST") "github.com")
+  "GitHub host domain to use for URLs and CLI API requests.
+Defaults to the environment variable GH_HOST or \"github.com\"."
+  :type 'string
+  :group 'gh-radar)
+
 (defcustom gh-radar-notify-on-new t
   "Whether to notify when new issues or pull requests are detected."
   :type 'boolean

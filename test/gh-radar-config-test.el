@@ -30,5 +30,11 @@
   (should (memq gh-radar-count-display '(all only-new)))
   (should (integerp gh-radar-recent-items-limit)))
 
+(ert-deftest gh-radar-config-test-github-host ()
+  "Test configurable GitHub Enterprise host."
+  (should (stringp gh-radar-github-host))
+  (let ((gh-radar-github-host "ghe.myorg.internal"))
+    (should (equal gh-radar-github-host "ghe.myorg.internal"))))
+
 (provide 'gh-radar-config-test)
 ;;; gh-radar-config-test.el ends here

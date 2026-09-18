@@ -104,10 +104,20 @@ Calls optional CALLBACK with updated state data on completion."
              (alias-map (cdr built))
              (stdout-buf (generate-new-buffer " *gh-radar-output*"))
              (stderr-buf (generate-new-buffer " *gh-radar-stderr*"))
-             (cmd (list gh-radar-gh-executable "api" "graphql"
-                        "-f" (concat "query=" query-str)))
+             (host-args (when (and gh-radar-github-host
+                                   (not (string-empty-p gh-radar-github-host))
+                                   (not (equal gh-radar-github-host
+                                               "github.com")))
+                          (list "--hostname" gh-radar-github-host)))
+             (cmd (append (list gh-radar-gh-executable "api")
+                          host-args
+                          (list "graphql"
+                                "-f" (concat "query=" query-str))))
              (process-environment
-              (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
+              (append (list "NO_COLOR=1" "CLICOLOR=0"
+                            (format "GH_HOST=%s"
+                                    (or gh-radar-github-host "github.com")))
+                      process-environment)))
         (setq gh-radar-process--current
               (make-process
                :name "gh-radar"
@@ -177,9 +187,19 @@ Calls optional CALLBACK with updated notification state on success."
   (let* ((default-directory (expand-file-name "~/"))
          (stdout-buf (generate-new-buffer " *gh-radar-notifications*"))
          (stderr-buf (generate-new-buffer " *gh-radar-notifications-err*"))
-         (cmd (list gh-radar-gh-executable "api" "notifications"))
+         (host-args (when (and gh-radar-github-host
+                               (not (string-empty-p gh-radar-github-host))
+                               (not (equal gh-radar-github-host
+                                           "github.com")))
+                      (list "--hostname" gh-radar-github-host)))
+         (cmd (append (list gh-radar-gh-executable "api")
+                      host-args
+                      (list "notifications")))
          (process-environment
-          (append '("NO_COLOR=1" "CLICOLOR=0") process-environment)))
+          (append (list "NO_COLOR=1" "CLICOLOR=0"
+                        (format "GH_HOST=%s"
+                                (or gh-radar-github-host "github.com")))
+                  process-environment)))
     (setq gh-radar-process--notifications
           (make-process
            :name "gh-radar-notifications"

@@ -151,7 +151,8 @@
 (defun gh-radar-dashboard-open-notifications ()
   "Open GitHub notifications in web browser."
   (interactive)
-  (browse-url "https://github.com/notifications"))
+  (let ((host (or gh-radar-github-host "github.com")))
+    (browse-url (format "https://%s/notifications" host))))
 
 (defun gh-radar-dashboard-open-issues ()
   "Open issues for the repository or inbox at point in web browser."
@@ -159,11 +160,12 @@
   (if-let* ((item (gh-radar-dashboard-current-repo)))
       (if (plist-get item :inbox)
           (gh-radar-dashboard-open-notifications)
-        (let ((repo (or (plist-get item :repo)
-                        (format "%s/%s"
-                                (plist-get item :owner)
-                                (plist-get item :name)))))
-          (browse-url (format "https://github.com/%s/issues" repo))))
+        (let* ((repo (or (plist-get item :repo)
+                         (format "%s/%s"
+                                 (plist-get item :owner)
+                                 (plist-get item :name))))
+               (host (or gh-radar-github-host "github.com")))
+          (browse-url (format "https://%s/%s/issues" host repo))))
     (user-error "No item at point")))
 
 (defun gh-radar-dashboard-open-pulls ()
@@ -172,11 +174,12 @@
   (if-let* ((item (gh-radar-dashboard-current-repo)))
       (if (plist-get item :inbox)
           (gh-radar-dashboard-open-notifications)
-        (let ((repo (or (plist-get item :repo)
-                        (format "%s/%s"
-                                (plist-get item :owner)
-                                (plist-get item :name)))))
-          (browse-url (format "https://github.com/%s/pulls" repo))))
+        (let* ((repo (or (plist-get item :repo)
+                         (format "%s/%s"
+                                 (plist-get item :owner)
+                                 (plist-get item :name))))
+               (host (or gh-radar-github-host "github.com")))
+          (browse-url (format "https://%s/%s/pulls" host repo))))
     (user-error "No item at point")))
 
 (defun gh-radar-dashboard-open-at-point ()
@@ -196,11 +199,12 @@
        ((plist-get item :inbox)
         (gh-radar-dashboard-open-notifications))
        (t
-        (let ((repo (or (plist-get item :repo)
-                        (format "%s/%s"
-                                (plist-get item :owner)
-                                (plist-get item :name)))))
-          (browse-url (format "https://github.com/%s" repo)))))
+        (let* ((repo (or (plist-get item :repo)
+                         (format "%s/%s"
+                                 (plist-get item :owner)
+                                 (plist-get item :name))))
+               (host (or gh-radar-github-host "github.com")))
+          (browse-url (format "https://%s/%s" host repo)))))
     (user-error "No item at point")))
 
 (defun gh-radar-dashboard-dismiss ()

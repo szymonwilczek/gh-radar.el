@@ -307,9 +307,14 @@
       (user-error "Repository '%s' is already configured" cleaned))
     (message "[gh-radar] Verifying repository %s on GitHub..." cleaned)
     (let* ((output (with-temp-buffer
-                     (let ((code (call-process
-                                  gh-radar-gh-executable nil t nil
-                                  "repo" "view" cleaned "--json" "name")))
+                     (let* ((process-environment
+                             (cons (format "GH_HOST=%s"
+                                           (or gh-radar-github-host
+                                               "github.com"))
+                                   process-environment))
+                            (code (call-process
+                                   gh-radar-gh-executable nil t nil
+                                   "repo" "view" cleaned "--json" "name")))
                        (cons code (string-trim (buffer-string))))))
            (exit-code (car output))
            (err-msg (cdr output)))

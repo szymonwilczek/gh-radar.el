@@ -77,12 +77,13 @@
            (target (completing-read (format "Open for %s: " repo)
                                     '("issues" "pulls" "repo")
                                     nil t "issues"))
+           (host (or gh-radar-github-host "github.com"))
            (url (cond
                  ((string= target "issues")
-                  (format "https://github.com/%s/issues" repo))
+                  (format "https://%s/%s/issues" host repo))
                  ((string= target "pulls")
-                  (format "https://github.com/%s/pulls" repo))
-                 (t (format "https://github.com/%s" repo)))))
+                  (format "https://%s/%s/pulls" host repo))
+                 (t (format "https://%s/%s" host repo)))))
       (browse-url url))))
 
 (provide 'gh-radar)
