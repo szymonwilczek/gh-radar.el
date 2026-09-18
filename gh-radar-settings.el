@@ -630,7 +630,7 @@
     (display-buffer buf
                     '((display-buffer-in-side-window)
                       (side . right)
-                      (window-width . 46)))
+                      (window-width . 60)))
     (select-window (get-buffer-window buf))))
 
 (defvar gh-radar-settings-mode-map
