@@ -117,7 +117,7 @@
             "\n"
             "  "
             (propertize
-             "[l] Items limit       [q] Return to dashboard"
+             "[l] Items limit       [?] Help            [q] Return to dashboard"
              'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
@@ -587,6 +587,52 @@
       (quit-window t))
     (message "[gh-radar] Settings saved.")))
 
+(defun gh-radar-settings-help ()
+  "Display a popup side window listing settings key bindings."
+  (interactive)
+  (let ((buf (get-buffer-create "*gh-radar settings help*")))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert (propertize "gh-radar settings keys\n"
+                            'face 'gh-radar-dashboard-title))
+        (insert (propertize "Press RET or action key on a settings row.\n\n"
+                            'face 'gh-radar-dashboard-meta))
+        (insert (propertize "Navigation\n" 'face 'gh-radar-dashboard-repo))
+        (insert "  j, <down>    Next row\n")
+        (insert "  k, <up>      Previous row\n\n")
+        (insert (propertize "General Settings\n"
+                            'face 'gh-radar-dashboard-repo))
+        (insert "  n, N         Toggle notifications inbox\n")
+        (insert "  c, C         Cycle modeline count mode\n")
+        (insert "  b, B         Toggle aggregate bell mode\n")
+        (insert "  z, Z         Cycle hide zero counts\n")
+        (insert "  h, H         Configure GitHub host\n")
+        (insert "  l, L         Configure recent items limit\n")
+        (insert "  I            Customize icon glyphs\n\n")
+        (insert (propertize "Repository Management\n"
+                            'face 'gh-radar-dashboard-repo))
+        (insert "  a            Add repository\n")
+        (insert "  d, x         Delete repository at point\n")
+        (insert "  i            Toggle issues tracking for repo\n")
+        (insert "  p, P         Toggle PRs tracking for repo\n\n")
+        (insert (propertize "General\n" 'face 'gh-radar-dashboard-repo))
+        (insert "  RET          Execute smart action on row\n")
+        (insert "  g, r         Rerender settings\n")
+        (insert "  ?            Show this help\n")
+        (insert "  q, s         Return to dashboard\n\n")
+        (insert (propertize "Press q to close this window.\n"
+                            'face 'gh-radar-dashboard-meta)))
+      (special-mode)
+      (local-set-key (kbd "q") #'quit-window)
+      (local-set-key (kbd "?") #'quit-window)
+      (goto-char (point-min)))
+    (display-buffer buf
+                    '((display-buffer-in-side-window)
+                      (side . right)
+                      (window-width . 46)))
+    (select-window (get-buffer-window buf))))
+
 (defvar gh-radar-settings-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "j") #'gh-radar-settings-next-row)
@@ -614,6 +660,7 @@
     (define-key map (kbd "I") #'gh-radar-settings-set-icon)
     (define-key map (kbd "RET") #'gh-radar-settings-smart-action)
     (define-key map [return] #'gh-radar-settings-smart-action)
+    (define-key map (kbd "?") #'gh-radar-settings-help)
     (define-key map (kbd "q") #'gh-radar-settings-quit)
     (define-key map (kbd "s") #'gh-radar-settings-quit)
     (define-key map (kbd "g") #'gh-radar-settings-render)
@@ -665,6 +712,7 @@
       (kbd "L") #'gh-radar-settings-set-limit
       (kbd "I") #'gh-radar-settings-set-icon
       (kbd "RET") #'gh-radar-settings-smart-action
+      (kbd "?") #'gh-radar-settings-help
       (kbd "q") #'gh-radar-settings-quit
       (kbd "s") #'gh-radar-settings-quit
       (kbd "g") #'gh-radar-settings-render

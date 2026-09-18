@@ -82,5 +82,15 @@
       (when (file-exists-p tmp)
         (delete-file tmp)))))
 
+(ert-deftest gh-radar-settings-test-help ()
+  "Test opening settings help popup buffer."
+  (gh-radar-settings-help)
+  (let ((buf (get-buffer "*gh-radar settings help*")))
+    (should (buffer-live-p buf))
+    (with-current-buffer buf
+      (should (string-match-p "gh-radar settings keys" (buffer-string))))
+    (when (buffer-live-p buf)
+      (kill-buffer buf))))
+
 (provide 'gh-radar-settings-test)
 ;;; gh-radar-settings-test.el ends here
