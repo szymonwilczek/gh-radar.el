@@ -1,4 +1,4 @@
-;;; gh-radar-query.el --- GraphQL query generation for gh-radar -*- lexical-binding: t; -*-
+;;; gh-radar-query.el --- GraphQL query generator -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
@@ -23,8 +23,11 @@
   "Parse ENTRY into (OWNER NAME TARGETS-LIST)."
   (let* ((repo-spec (car entry))
          (parts (split-string (string-trim repo-spec) "/"))
-         (targets (delq nil (mapcar #'gh-radar-query--parse-target (cdr entry)))))
-    (when (and (= (length parts) 2) (not (string-empty-p (car parts))) (not (string-empty-p (cadr parts))))
+         (targets (delq nil (mapcar #'gh-radar-query--parse-target
+                                    (cdr entry)))))
+    (when (and (= (length parts) 2)
+               (not (string-empty-p (car parts)))
+               (not (string-empty-p (cadr parts))))
       (list (car parts) (cadr parts) (or targets '(:issues :pr))))))
 
 (defcustom gh-radar-recent-items-limit 10
@@ -47,18 +50,30 @@ Returns a cons cell (QUERY-STRING . ALIAS-MAP)."
                (alias (format "repo_%d" index))
                (parts nil))
           (when (memq :issues targets)
-            (push (format "issues(states: OPEN, first: %d, orderBy: {field: CREATED_AT, direction: DESC}) { totalCount nodes { number title url createdAt author { login } } }"
-                          limit)
+            (push (format
+                   (concat "issues(states: OPEN, first: %d, "
+                           "orderBy: {field: CREATED_AT, direction: DESC}) "
+                           "{ totalCount nodes { number title url createdAt "
+                           "author { login } } }")
+                   limit)
                   parts))
           (when (memq :pr targets)
-            (push (format "pullRequests(states: OPEN, first: %d, orderBy: {field: CREATED_AT, direction: DESC}) { totalCount nodes { number title url createdAt author { login } } }"
-                          limit)
+            (push (format
+                   (concat "pullRequests(states: OPEN, first: %d, "
+                           "orderBy: {field: CREATED_AT, direction: DESC}) "
+                           "{ totalCount nodes { number title url createdAt "
+                           "author { login } } }")
+                   limit)
                   parts))
           (when parts
             (push (format "%s: repository(owner: \"%s\", name: \"%s\") { %s }"
                           alias owner name (string-join (nreverse parts) " "))
                   fields)
-            (push (cons alias (list :owner owner :name name :repo (format "%s/%s" owner name) :targets targets))
+            (push (cons alias
+                        (list :owner owner
+                              :name name
+                              :repo (format "%s/%s" owner name)
+                              :targets targets))
                   alias-map)
             (setq index (1+ index))))))
     (when fields
