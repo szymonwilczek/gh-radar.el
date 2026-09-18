@@ -52,8 +52,9 @@
   (let* ((gh-radar-state-data
           '(("user/repo" . (:owner "user" :name "repo" :issues 12 :pr 3
                                    :new-issues 1 :new-pr 0
-                                   :unread-issues ((:number 42 :title "Bug fix"
-                                                            :author "alice" :url "http://x"))
+                                   :unread-issues
+                                   ((:number 42 :title "Bug fix"
+                                             :author "alice" :url "http://x"))
                                    :unread-prs nil))))
          (buf (get-buffer-create "*gh-radar-test-dashboard*")))
     (unwind-protect

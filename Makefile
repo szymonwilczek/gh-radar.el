@@ -16,7 +16,7 @@ test:
 		-f ert-run-tests-batch-and-exit
 
 check-style:
-	@awk 'length > 80 {print FILENAME ":" NR ":" $$0; err=1} END {exit err}' \
+	@awk 'length > 80 {print FILENAME ":" FNR ":" $$0; err=1} END {exit err}' \
 		$(SRC) $(wildcard test/*.el)
 
 clean:
