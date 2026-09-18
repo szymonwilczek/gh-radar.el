@@ -361,7 +361,7 @@
               "\n"))
     (insert "\n"
             "  "
-            (propertize "[d] Dismiss       [D] Dismiss all     [RET] Open"
+            (propertize "[RET] Open        [d] Dismiss         [D] Dismiss all"
                         'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
