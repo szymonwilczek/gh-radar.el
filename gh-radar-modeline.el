@@ -1,4 +1,4 @@
-;;; gh-radar-modeline.el --- Mode-line presentation for gh-radar -*- lexical-binding: t; -*-
+;;; gh-radar-modeline.el --- Mode-line presentation -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
@@ -22,7 +22,7 @@
   (gh-radar-resolve-icon name fallback))
 
 (defun gh-radar-modeline--target-enabled-p (target)
-  "Return non-nil if TARGET (\"issues\" or \"pr\") is enabled in any configured repo."
+  "Return non-nil if TARGET (\"issues\" or \"pr\") is enabled in any repo."
   (let* ((str-target (if (symbolp target) (symbol-name target) target))
          (sym-target (intern (if (string-prefix-p ":" str-target)
                                  (substring str-target 1)
@@ -52,12 +52,19 @@ Returns a plist `(:issues I :prs P :new-issues NI :new-prs NP)'."
       (let* ((repo-name (car item))
              (entry (assoc repo-name repos))
              (targets (cdr entry))
-             (track-issues (or (null entry) (member "issues" targets) (memq :issues targets)))
-             (track-prs (or (null entry) (member "pr" targets) (memq :pr targets)))
+             (track-issues
+              (or (null entry)
+                  (member "issues" targets)
+                  (memq :issues targets)))
+             (track-prs
+              (or (null entry)
+                  (member "pr" targets)
+                  (memq :pr targets)))
              (data (cdr item)))
         (when track-issues
           (setq tot-issues (+ tot-issues (or (plist-get data :issues) 0)))
-          (setq tot-new-issues (+ tot-new-issues (or (plist-get data :new-issues) 0))))
+          (setq tot-new-issues
+                (+ tot-new-issues (or (plist-get data :new-issues) 0))))
         (when track-prs
           (setq tot-prs (+ tot-prs (or (plist-get data :pr) 0)))
           (setq tot-new-prs (+ tot-new-prs (or (plist-get data :new-pr) 0))))))
@@ -72,7 +79,10 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
   (if (eq type :bell)
       gh-radar-show-bell-icon
     (and (if (boundp 'gh-radar-modeline-icons)
-             (let ((sym (pcase type (:inbox 'inbox) (:issue 'issues) (:pr 'pr))))
+             (let ((sym (pcase type
+                          (:inbox 'inbox)
+                          (:issue 'issues)
+                          (:pr 'pr))))
                (or (memq sym gh-radar-modeline-icons)
                    (memq type gh-radar-modeline-icons)))
            t)
@@ -123,29 +133,45 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
             (and gh-radar-track-notifications gh-radar-state-notifications))
     (let ((parts nil))
       (if gh-radar-bell-modeline
-          (let* ((inbox-cnt (if (and gh-radar-track-notifications gh-radar-state-notifications)
-                                (or (plist-get gh-radar-state-notifications :count) 0)
-                              0))
-                 (inbox-new (if (and gh-radar-track-notifications gh-radar-state-notifications)
-                                (or (plist-get gh-radar-state-notifications :new) 0)
-                              0))
+          (let* ((inbox-cnt
+                  (if (and gh-radar-track-notifications
+                           gh-radar-state-notifications)
+                      (or (plist-get gh-radar-state-notifications :count) 0)
+                    0))
+                 (inbox-new
+                  (if (and gh-radar-track-notifications
+                           gh-radar-state-notifications)
+                      (or (plist-get gh-radar-state-notifications :new) 0)
+                    0))
                  (totals (gh-radar-modeline--repo-totals))
-                 (total-cnt (+ inbox-cnt (plist-get totals :issues) (plist-get totals :prs)))
-                 (total-new (+ inbox-new (plist-get totals :new-issues) (plist-get totals :new-prs)))
-                 (active-cnt (if (memq gh-radar-count-display '(new only-new)) total-new total-cnt)))
+                 (total-cnt (+ inbox-cnt
+                               (plist-get totals :issues)
+                               (plist-get totals :prs)))
+                 (total-new (+ inbox-new
+                               (plist-get totals :new-issues)
+                               (plist-get totals :new-prs)))
+                 (active-cnt (if (memq gh-radar-count-display '(new only-new))
+                                 total-new
+                               total-cnt)))
             (unless (gh-radar-modeline--hide-zero-p :bell active-cnt)
               (let ((bell-icon (when (gh-radar-modeline--show-icon-p :bell)
                                  (gh-radar-icon :bell))))
-                (push (gh-radar-modeline--format-segment bell-icon total-cnt total-new)
+                (push (gh-radar-modeline--format-segment
+                       bell-icon total-cnt total-new)
                       parts))))
         (when (and gh-radar-track-notifications gh-radar-state-notifications)
-          (let* ((inbox-cnt (or (plist-get gh-radar-state-notifications :count) 0))
-                 (inbox-new (or (plist-get gh-radar-state-notifications :new) 0))
-                 (active-cnt (if (memq gh-radar-count-display '(new only-new)) inbox-new inbox-cnt)))
+          (let* ((inbox-cnt
+                  (or (plist-get gh-radar-state-notifications :count) 0))
+                 (inbox-new
+                  (or (plist-get gh-radar-state-notifications :new) 0))
+                 (active-cnt (if (memq gh-radar-count-display '(new only-new))
+                                 inbox-new
+                               inbox-cnt)))
             (unless (gh-radar-modeline--hide-zero-p :inbox active-cnt)
               (let ((inbox-icon (when (gh-radar-modeline--show-icon-p :inbox)
                                   (gh-radar-icon :inbox))))
-                (push (gh-radar-modeline--format-segment inbox-icon inbox-cnt inbox-new)
+                (push (gh-radar-modeline--format-segment
+                       inbox-icon inbox-cnt inbox-new)
                       parts)))))
         (when gh-radar-state-data
           (let* ((totals (gh-radar-modeline--repo-totals))
@@ -153,24 +179,33 @@ TYPE can be `:inbox', `:issue', `:pr', or `:bell'."
                  (tot-prs (plist-get totals :prs))
                  (tot-new-issues (plist-get totals :new-issues))
                  (tot-new-prs (plist-get totals :new-prs))
-                 (act-issues (if (memq gh-radar-count-display '(new only-new)) tot-new-issues tot-issues))
-                 (act-prs (if (memq gh-radar-count-display '(new only-new)) tot-new-prs tot-prs)))
+                 (act-issues
+                  (if (memq gh-radar-count-display '(new only-new))
+                      tot-new-issues
+                    tot-issues))
+                 (act-prs
+                  (if (memq gh-radar-count-display '(new only-new))
+                      tot-new-prs
+                    tot-prs)))
             (when (and (gh-radar-modeline--target-enabled-p "issues")
                        (not (gh-radar-modeline--hide-zero-p :issue act-issues)))
               (let ((issue-icon (when (gh-radar-modeline--show-icon-p :issue)
                                   (gh-radar-icon :issues))))
-                (push (gh-radar-modeline--format-segment issue-icon tot-issues tot-new-issues)
+                (push (gh-radar-modeline--format-segment
+                       issue-icon tot-issues tot-new-issues)
                       parts)))
             (when (and (gh-radar-modeline--target-enabled-p "pr")
                        (not (gh-radar-modeline--hide-zero-p :pr act-prs)))
               (let ((pr-icon (when (gh-radar-modeline--show-icon-p :pr)
                                (gh-radar-icon :pr))))
-                (push (gh-radar-modeline--format-segment pr-icon tot-prs tot-new-prs)
+                (push (gh-radar-modeline--format-segment
+                       pr-icon tot-prs tot-new-prs)
                       parts))))))
       (when parts
-        (let* ((prefix-str (when gh-radar-show-prefix
-                             (format "%s  " (propertize (gh-radar-icon :prefix)
-                                                        'face 'gh-radar-prefix-face))))
+        (let* ((prefix-str
+                (when gh-radar-show-prefix
+                  (format "%s  " (propertize (gh-radar-icon :prefix)
+                                             'face 'gh-radar-prefix-face))))
                (map (let ((km (make-sparse-keymap)))
                       (define-key km [mode-line mouse-1] #'gh-radar-dashboard)
                       km))
