@@ -53,7 +53,8 @@ Returns a cons cell (QUERY-STRING . ALIAS-MAP)."
             (push (format
                    (concat "issues(states: OPEN, first: %d, "
                            "orderBy: {field: CREATED_AT, direction: DESC}) "
-                           "{ totalCount nodes { number title url createdAt "
+                           "{ totalCount pageInfo { hasNextPage } "
+                           "nodes { number title url createdAt "
                            "author { login } } }")
                    limit)
                   parts))
@@ -61,7 +62,8 @@ Returns a cons cell (QUERY-STRING . ALIAS-MAP)."
             (push (format
                    (concat "pullRequests(states: OPEN, first: %d, "
                            "orderBy: {field: CREATED_AT, direction: DESC}) "
-                           "{ totalCount nodes { number title url createdAt "
+                           "{ totalCount pageInfo { hasNextPage } "
+                           "nodes { number title url createdAt "
                            "author { login } } }")
                    limit)
                   parts))

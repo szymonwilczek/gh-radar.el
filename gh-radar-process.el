@@ -75,6 +75,18 @@ Returns a list of repository metric plists."
                        (pr-cnt
                         (when (hash-table-p pr-node)
                           (gethash "totalCount" pr-node)))
+                       (issues-pi
+                        (when (hash-table-p issues-node)
+                          (gethash "pageInfo" issues-node)))
+                       (pr-pi
+                        (when (hash-table-p pr-node)
+                          (gethash "pageInfo" pr-node)))
+                       (has-more-issues
+                        (when (hash-table-p issues-pi)
+                          (eq (gethash "hasNextPage" issues-pi) t)))
+                       (has-more-pr
+                        (when (hash-table-p pr-pi)
+                          (eq (gethash "hasNextPage" pr-pi) t)))
                        (recent-issues
                         (gh-radar-process--extract-nodes issues-node :issue))
                        (recent-prs
@@ -84,6 +96,9 @@ Returns a list of repository metric plists."
                               :name (plist-get meta :name)
                               :issues issues-cnt
                               :pr pr-cnt
+                              :has-more-issues has-more-issues
+                              :has-more-prs has-more-pr
+                              :has-more (or has-more-issues has-more-pr)
                               :recent-issues recent-issues
                               :recent-prs recent-prs)
                         records))))))

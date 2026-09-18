@@ -185,6 +185,9 @@ Each function is called with the full `gh-radar-state-data` alist.")
                           :name (plist-get item :name)
                           :issues cur-issues
                           :pr cur-prs
+                          :has-more-issues (plist-get item :has-more-issues)
+                          :has-more-prs (plist-get item :has-more-prs)
+                          :has-more (plist-get item :has-more)
                           :last-seen-issue last-issue
                           :last-seen-pr last-pr
                           :unread-issues unread-issues

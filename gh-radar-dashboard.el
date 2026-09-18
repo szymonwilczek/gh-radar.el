@@ -238,11 +238,16 @@
 
 (defun gh-radar-dashboard--insert-unread-section ()
   "Insert the unread activity section if any unread items exist."
-  (let ((unread (gh-radar-state-unread-items))
-        (width (gh-radar-dashboard-width)))
+  (let* ((unread (gh-radar-state-unread-items))
+         (width (gh-radar-dashboard-width))
+         (has-more (cl-some (lambda (entry)
+                              (plist-get (cdr entry) :has-more))
+                            gh-radar-state-data)))
     (when unread
       (insert "  "
-              (propertize (format "New Activity (%d)" (length unread))
+              (propertize (format "New Activity (%d%s)"
+                                  (length unread)
+                                  (if has-more " (+more)" ""))
                           'face 'gh-radar-dashboard-section-header)
               "  "
               (propertize "· [d] dismiss item · [D] dismiss all"
@@ -292,7 +297,12 @@
                     "\n\n"))
           (let ((end (point)))
             (put-text-property beg end 'gh-radar-item data)
-            (push (list beg end data) gh-radar-dashboard--rows)))))))
+            (push (list beg end data) gh-radar-dashboard--rows))))
+      (when has-more
+        (insert "       "
+                (propertize "(+more unread items exceed recent limit)"
+                            'face 'gh-radar-dashboard-meta)
+                "\n\n")))))
 
 (defun gh-radar-dashboard--insert-header ()
   "Insert the dashboard banner, statistics, and rule."

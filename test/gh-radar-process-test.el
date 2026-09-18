@@ -88,5 +88,22 @@
       (should (equal (plist-get (car parsed) :repo) "o/r0"))
       (should (= (plist-get (car parsed) :issues) 3)))))
 
+(ert-deftest gh-radar-process-test-parse-response-page-info ()
+  "Test parsing pageInfo hasNextPage sets :has-more flags."
+  (let* ((json (concat "{\"data\": {\"repo_0\": "
+                       "{\"issues\": {\"totalCount\": 15, "
+                       "\"pageInfo\": {\"hasNextPage\": true}, "
+                       "\"nodes\": []}, "
+                       "\"pullRequests\": {\"totalCount\": 1, "
+                       "\"pageInfo\": {\"hasNextPage\": false}, "
+                       "\"nodes\": []}}}}"))
+         (alias-map '(("repo_0" . (:owner "o" :name "r" :repo "o/r")))))
+    (let ((parsed (gh-radar-process--parse-response json alias-map)))
+      (should (= (length parsed) 1))
+      (let ((rec (car parsed)))
+        (should (eq (plist-get rec :has-more-issues) t))
+        (should (eq (plist-get rec :has-more-prs) nil))
+        (should (eq (plist-get rec :has-more) t))))))
+
 (provide 'gh-radar-process-test)
 ;;; gh-radar-process-test.el ends here

@@ -76,5 +76,11 @@
     (should (equal (plist-get (cdr (nth 0 alias-map)) :targets) '(:issues)))
     (should (equal (plist-get (cdr (nth 1 alias-map)) :targets) '(:pr)))))
 
+(ert-deftest gh-radar-query-test-page-info ()
+  "Test query builder includes pageInfo hasNextPage field."
+  (let* ((built (gh-radar-query-build '(("owner/repo"))))
+         (query (car built)))
+    (should (string-match-p "pageInfo { hasNextPage }" query))))
+
 (provide 'gh-radar-query-test)
 ;;; gh-radar-query-test.el ends here
