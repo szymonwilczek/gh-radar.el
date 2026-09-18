@@ -36,8 +36,15 @@ Asynchronous GitHub radar for GNU Emacs. Tracks open issues, pull requests, and 
 #+HTML: </div>
 
 *** Mode-line Integration
+
+**** Multi-segment Counters (Issues, PRs, and Inbox)
 #+HTML: <div align="center">
-#+HTML:   <img src="assets/modeline.png" alt="gh-radar mode-line" width="90%"/>
+#+HTML:   <img src="assets/modeline.png" alt="gh-radar mode-line multi-segment counters" width="90%"/>
+#+HTML: </div>
+
+**** Aggregate Bell Mode (~gh-radar-bell-modeline t~)
+#+HTML: <div align="center">
+#+HTML:   <img src="assets/modeline-bell.png" alt="gh-radar mode-line bell indicator" width="90%"/>
 #+HTML: </div>
 
 ** Installation
