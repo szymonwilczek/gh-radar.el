@@ -51,5 +51,21 @@
       (when (file-exists-p tmp)
         (delete-file tmp)))))
 
+(ert-deftest gh-radar-settings-test-host ()
+  "Test configuring GitHub host in settings."
+  (let* ((tmp (make-temp-file "gh-radar-settings-test" nil ".eld"))
+         (gh-radar-cache-file tmp)
+         (gh-radar-cache--data nil)
+         (gh-radar-github-host "github.com"))
+    (unwind-protect
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (&rest _) "ghe.corp.internal")))
+          (gh-radar-settings-set-host)
+          (should (equal gh-radar-github-host "ghe.corp.internal"))
+          (should (equal (gh-radar-cache-get-setting :github-host)
+                         "ghe.corp.internal")))
+      (when (file-exists-p tmp)
+        (delete-file tmp)))))
+
 (provide 'gh-radar-settings-test)
 ;;; gh-radar-settings-test.el ends here

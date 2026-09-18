@@ -112,7 +112,12 @@
             "\n"
             "  "
             (propertize
-             "[b] Bell mode         [z] Hide zeros      [q] Return to dashboard"
+             "[b] Bell mode         [z] Hide zeros      [h] GitHub host"
+             'face 'gh-radar-dashboard-meta)
+            "\n"
+            "  "
+            (propertize
+             "[q] Return to dashboard"
              'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
@@ -184,6 +189,19 @@
             "\n\n")
     (let ((end (point)))
       (push (list beg end :hide-zero-counts nil) gh-radar-settings--rows))))
+
+(defun gh-radar-settings--insert-host ()
+  "Insert GitHub host configuration row."
+  (let* ((host (or gh-radar-github-host
+                   (gh-radar-cache-get-setting :github-host "github.com")))
+         (beg (point)))
+    (insert "    [h]  "
+            (propertize (format "%-30s" "GitHub Host:")
+                        'face 'gh-radar-dashboard-unread-title)
+            (propertize (format "[ %s ]" host) 'face 'gh-radar-dashboard-meta)
+            "\n\n")
+    (let ((end (point)))
+      (push (list beg end :host nil) gh-radar-settings--rows))))
 
 (defun gh-radar-settings--insert-icons ()
   "Insert icon glyph configuration entries."
@@ -284,6 +302,7 @@
       (gh-radar-settings--insert-count-display)
       (gh-radar-settings--insert-bell-modeline)
       (gh-radar-settings--insert-hide-zero-counts)
+      (gh-radar-settings--insert-host)
       (gh-radar-settings--insert-icons)
       (gh-radar-settings--insert-repos)
       (setq gh-radar-settings--rows (nreverse gh-radar-settings--rows))
@@ -486,6 +505,21 @@
               (gh-radar-dashboard-render)))))
       (message "[gh-radar] Icon for %s set to: %s" type-sym clean-name))))
 
+;;;###autoload
+(defun gh-radar-settings-set-host ()
+  "Prompt to configure GitHub host domain."
+  (interactive)
+  (let* ((cur (or gh-radar-github-host
+                  (gh-radar-cache-get-setting :github-host "github.com")))
+         (new (string-trim
+               (read-string (format "GitHub host (current: %s): " cur)
+                            nil nil cur))))
+    (when (> (length new) 0)
+      (setq gh-radar-github-host new)
+      (gh-radar-cache-set-setting :github-host new)
+      (gh-radar-settings-render)
+      (message "[gh-radar] GitHub host set to: %s" new))))
+
 (defun gh-radar-settings-smart-action ()
   "Execute the appropriate action for row at point on RET."
   (interactive)
@@ -495,6 +529,7 @@
         (:count-display (gh-radar-settings-toggle-count-display))
         (:bell-modeline (gh-radar-settings-toggle-bell))
         (:hide-zero-counts (gh-radar-settings-toggle-hide-zeros))
+        (:host (gh-radar-settings-set-host))
         (:icon (gh-radar-settings-set-icon (nth 3 row)))
         (:repo (gh-radar-settings-toggle-issues)))
     (gh-radar-settings-add-repo (read-string "Add repository (owner/name): "))))
@@ -537,6 +572,8 @@
     (define-key map (kbd "B") #'gh-radar-settings-toggle-bell)
     (define-key map (kbd "z") #'gh-radar-settings-toggle-hide-zeros)
     (define-key map (kbd "Z") #'gh-radar-settings-toggle-hide-zeros)
+    (define-key map (kbd "h") #'gh-radar-settings-set-host)
+    (define-key map (kbd "H") #'gh-radar-settings-set-host)
     (define-key map (kbd "I") #'gh-radar-settings-set-icon)
     (define-key map (kbd "RET") #'gh-radar-settings-smart-action)
     (define-key map [return] #'gh-radar-settings-smart-action)
@@ -585,6 +622,8 @@
       (kbd "B") #'gh-radar-settings-toggle-bell
       (kbd "z") #'gh-radar-settings-toggle-hide-zeros
       (kbd "Z") #'gh-radar-settings-toggle-hide-zeros
+      (kbd "h") #'gh-radar-settings-set-host
+      (kbd "H") #'gh-radar-settings-set-host
       (kbd "I") #'gh-radar-settings-set-icon
       (kbd "RET") #'gh-radar-settings-smart-action
       (kbd "q") #'gh-radar-settings-quit
