@@ -102,22 +102,18 @@
             "\n\n"
             "  "
             (propertize
-             "[a] Add repo          [d] Delete repo     [c] Display mode"
+             (format "%-24s%-22s%s"
+                     "[RET] Toggle / Edit"
+                     "[a] Add repository"
+                     "[d] Delete repo")
              'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
             (propertize
-             "[i] Toggle Issues    [p] Toggle PRs     [n] Toggle Notifications"
-             'face 'gh-radar-dashboard-meta)
-            "\n"
-            "  "
-            (propertize
-             "[b] Bell mode         [z] Hide zeros      [h] GitHub host"
-             'face 'gh-radar-dashboard-meta)
-            "\n"
-            "  "
-            (propertize
-             "[l] Items limit       [?] Help            [q] Return to dashboard"
+             (format "%-24s%-22s%s"
+                     "[r] Refresh"
+                     "[?] Help"
+                     "[q] Return to dashboard")
              'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
