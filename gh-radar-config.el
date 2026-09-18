@@ -1,4 +1,4 @@
-;;; gh-radar-config.el --- User configuration for gh-radar -*- lexical-binding: t; -*-
+;;; gh-radar-config.el --- User configuration -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
@@ -22,8 +22,9 @@ where REPO-NAME is a string \"owner/repo\" and TRACK-TYPES are strings
 or symbols: \"issues\", \"pr\", or :issues, :pr."
 
   :type '(repeat (cons (string :tag "Repository (owner/name)")
-                       (repeat (choice (string :tag "Target (\"issues\" / \"pr\")")
-                                       (symbol :tag "Target (:issues / :pr)")))))
+                       (repeat (choice
+                                (string :tag "Target (\"issues\" / \"pr\")")
+                                (symbol :tag "Target (:issues / :pr)")))))
   :group 'gh-radar)
 
 (defcustom gh-radar-interval 600
@@ -53,7 +54,8 @@ Supported values:
 - `notify-send': Use external `notify-send' CLI executable.
 - A custom function taking two arguments: (TITLE BODY)."
   :type '(choice (const :tag "Disabled" nil)
-                 (const :tag "Built-in notifications-notify (D-Bus)" notifications)
+                 (const :tag "Built-in notifications-notify (D-Bus)"
+                        notifications)
                  (const :tag "External notify-send command" notify-send)
                  (function :tag "Custom notification function"))
   :group 'gh-radar)
@@ -257,17 +259,24 @@ If FACE is non-nil, apply FACE to the returned glyph."
       glyph)))
 
 (defun gh-radar-icon (type &optional face)
-  "Return resolved icon glyph for symbol TYPE (:inbox, :issues, :pr, :bell, :repo).
+  "Return resolved icon glyph for symbol TYPE.
+TYPE can be :inbox, :issues, :pr, :bell, or :repo.
 If FACE is non-nil, apply FACE to the glyph."
-  (let* ((type-sym (if (keywordp type) (intern (substring (symbol-name type) 1)) type))
+  (let* ((type-sym (if (keywordp type)
+                       (intern (substring (symbol-name type) 1))
+                     type))
          (cached-icons (when (fboundp 'gh-radar-cache-get-setting)
                          (gh-radar-cache-get-setting :icons nil)))
          (icon-entry (or (assq type-sym cached-icons)
                          (assq type-sym gh-radar-icons)))
          (name (if (consp icon-entry) (cdr icon-entry) icon-entry))
          (fallback-entry (assq type-sym gh-radar-icon-fallbacks))
-         (fallback (if (consp fallback-entry) (cdr fallback-entry) (symbol-name type-sym))))
-    (gh-radar-resolve-icon (or name (symbol-name type-sym)) (or fallback "?") face)))
+         (fallback (if (consp fallback-entry)
+                       (cdr fallback-entry)
+                     (symbol-name type-sym))))
+    (gh-radar-resolve-icon (or name (symbol-name type-sym))
+                           (or fallback "?")
+                           face)))
 
 (provide 'gh-radar-config)
 ;;; gh-radar-config.el ends here
