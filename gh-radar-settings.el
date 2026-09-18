@@ -1,4 +1,4 @@
-;;; gh-radar-settings.el --- Settings sub-buffer for gh-radar -*- lexical-binding: t; -*-
+;;; gh-radar-settings.el --- Settings sub-buffer -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
@@ -20,8 +20,10 @@
 (autoload 'gh-radar-dashboard-render "gh-radar-dashboard")
 (autoload 'gh-radar-dashboard-width "gh-radar-dashboard")
 
-(declare-function evil-define-key "evil-core" (state keymap key def &rest bindings))
-(declare-function evil-make-overriding-map "evil-core" (keymap &optional state copy))
+(declare-function evil-define-key "evil-core"
+                  (state keymap key def &rest bindings))
+(declare-function evil-make-overriding-map "evil-core"
+                  (keymap &optional state copy))
 
 (defface gh-radar-settings-on
   '((t :inherit font-lock-keyword-face :weight bold))
@@ -55,7 +57,8 @@
             (end (nth 1 row)))
         (unless (overlayp gh-radar-settings--highlight)
           (setq gh-radar-settings--highlight (make-overlay beg end))
-          (overlay-put gh-radar-settings--highlight 'face 'gh-radar-dashboard-row-highlight))
+          (overlay-put gh-radar-settings--highlight
+                       'face 'gh-radar-dashboard-row-highlight))
         (move-overlay gh-radar-settings--highlight beg end))
     (when (overlayp gh-radar-settings--highlight)
       (delete-overlay gh-radar-settings--highlight))))
@@ -85,29 +88,36 @@
 
 (defun gh-radar-settings--insert-header ()
   "Insert title banner, file location, and key actions into settings buffer."
-  (let ((width (if (fboundp 'gh-radar-dashboard-width) (gh-radar-dashboard-width) 76)))
+  (let ((width (if (fboundp 'gh-radar-dashboard-width)
+                   (gh-radar-dashboard-width)
+                 76)))
     (insert "  "
             (propertize "gh-radar Settings" 'face 'gh-radar-dashboard-title)
             "\n"
             "  "
             (propertize (format "Configuration stored in %s"
-                                (abbreviate-file-name (or gh-radar-cache-file "cache")))
+                                (abbreviate-file-name
+                                 (or gh-radar-cache-file "cache")))
                         'face 'gh-radar-dashboard-meta)
             "\n\n"
             "  "
-            (propertize "[a] Add repo          [d] Delete repo     [c] Display mode"
-                        'face 'gh-radar-dashboard-meta)
+            (propertize
+             "[a] Add repo          [d] Delete repo     [c] Display mode"
+             'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
-            (propertize "[i] Toggle Issues     [p] Toggle PRs      [n] Toggle Notifications"
-                        'face 'gh-radar-dashboard-meta)
+            (propertize
+             "[i] Toggle Issues    [p] Toggle PRs     [n] Toggle Notifications"
+             'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
-            (propertize "[b] Bell mode         [z] Hide zeros      [q] Return to dashboard"
-                        'face 'gh-radar-dashboard-meta)
+            (propertize
+             "[b] Bell mode         [z] Hide zeros      [q] Return to dashboard"
+             'face 'gh-radar-dashboard-meta)
             "\n"
             "  "
-            (propertize (make-string width ?─) 'face 'gh-radar-dashboard-separator)
+            (propertize (make-string width ?─)
+                        'face 'gh-radar-dashboard-separator)
             "\n\n")))
 
 (defun gh-radar-settings--insert-notifications ()
@@ -115,10 +125,12 @@
   (let* ((enabled (gh-radar-cache-get-setting :track-notifications t))
          (beg (point)))
     (insert "  "
-            (propertize "General Settings" 'face 'gh-radar-dashboard-section-header)
+            (propertize "General Settings"
+                        'face 'gh-radar-dashboard-section-header)
             "\n\n"
             "    [n]  "
-            (propertize (format "%-30s" "GitHub Notifications Inbox:") 'face 'gh-radar-dashboard-unread-title)
+            (propertize (format "%-30s" "GitHub Notifications Inbox:")
+                        'face 'gh-radar-dashboard-unread-title)
             (if enabled
                 (propertize "[ ENABLED ]" 'face 'gh-radar-settings-on)
               (propertize "[ DISABLED ]" 'face 'gh-radar-settings-off))
@@ -132,7 +144,8 @@
          (is-new (memq mode '(new only-new)))
          (beg (point)))
     (insert "    [c]  "
-            (propertize (format "%-30s" "Modeline Count Mode:") 'face 'gh-radar-dashboard-unread-title)
+            (propertize (format "%-30s" "Modeline Count Mode:")
+                        'face 'gh-radar-dashboard-unread-title)
             (if is-new
                 (propertize "[ ONLY NEW (+Delta) ]" 'face 'gh-radar-settings-on)
               (propertize "[ ALL (Total + New) ]" 'face 'gh-radar-settings-off))
@@ -142,10 +155,12 @@
 
 (defun gh-radar-settings--insert-bell-modeline ()
   "Insert bell modeline style toggle row."
-  (let* ((bell (gh-radar-cache-get-setting :bell-modeline gh-radar-bell-modeline))
+  (let* ((bell (gh-radar-cache-get-setting :bell-modeline
+                                           gh-radar-bell-modeline))
          (beg (point)))
     (insert "    [b]  "
-            (propertize (format "%-30s" "Modeline Bell Style:") 'face 'gh-radar-dashboard-unread-title)
+            (propertize (format "%-30s" "Modeline Bell Style:")
+                        'face 'gh-radar-dashboard-unread-title)
             (if bell
                 (propertize "[ ENABLED ]" 'face 'gh-radar-settings-on)
               (propertize "[ DISABLED ]" 'face 'gh-radar-settings-off))
@@ -155,13 +170,16 @@
 
 (defun gh-radar-settings--insert-hide-zero-counts ()
   "Insert hide-zero-counts toggle row."
-  (let* ((mode (gh-radar-cache-get-setting :hide-zero-counts gh-radar-hide-zero-counts))
+  (let* ((mode (gh-radar-cache-get-setting :hide-zero-counts
+                                           gh-radar-hide-zero-counts))
          (beg (point)))
     (insert "    [z]  "
-            (propertize (format "%-30s" "Hide Zero Counts:") 'face 'gh-radar-dashboard-unread-title)
+            (propertize (format "%-30s" "Hide Zero Counts:")
+                        'face 'gh-radar-dashboard-unread-title)
             (pcase mode
               ('t (propertize "[ ALL ]" 'face 'gh-radar-settings-on))
-              ('(inbox) (propertize "[ INBOX ONLY ]" 'face 'gh-radar-settings-on))
+              ('(inbox)
+               (propertize "[ INBOX ONLY ]" 'face 'gh-radar-settings-on))
               (_ (propertize "[ DISABLED ]" 'face 'gh-radar-settings-off)))
             "\n\n")
     (let ((end (point)))
@@ -174,25 +192,34 @@
                  (pr . "Pull Requests Icon")
                  (bell . "Modeline Bell Icon")
                  (repo . "Repository Icon")))
-        (width (if (fboundp 'gh-radar-dashboard-width) (gh-radar-dashboard-width) 76)))
+        (width (if (fboundp 'gh-radar-dashboard-width)
+                   (gh-radar-dashboard-width)
+                 76)))
     (insert "  "
-            (propertize "Icon Glyphs (press RET or 'I' to customize)" 'face 'gh-radar-dashboard-section-header)
+            (propertize
+             "Icon Glyphs (press RET or 'I' to customize)"
+             'face 'gh-radar-dashboard-section-header)
             "\n"
             "  "
-            (propertize (make-string width ?─) 'face 'gh-radar-dashboard-separator)
+            (propertize (make-string width ?─)
+                        'face 'gh-radar-dashboard-separator)
             "\n\n")
     (dolist (entry types)
       (let* ((sym (car entry))
              (label (cdr entry))
              (beg (point))
-             (cur-val (cdr (or (assq sym (gh-radar-cache-get-setting :icons nil))
+             (cur-val (cdr (or (assq sym
+                                     (gh-radar-cache-get-setting :icons nil))
                                (assq sym gh-radar-icons)
                                '(nil . ""))))
              (glyph (gh-radar-icon sym)))
         (insert "    [RET]  "
-                (propertize (format "%-24s" (concat label ":")) 'face 'gh-radar-dashboard-unread-title)
-                (format "%s  " (propertize glyph 'face 'gh-radar-dashboard-repo))
-                (propertize (format "[ %s ]" cur-val) 'face 'gh-radar-dashboard-meta)
+                (propertize (format "%-24s" (concat label ":"))
+                            'face 'gh-radar-dashboard-unread-title)
+                (format "%s  "
+                        (propertize glyph 'face 'gh-radar-dashboard-repo))
+                (propertize (format "[ %s ]" cur-val)
+                            'face 'gh-radar-dashboard-meta)
                 "\n\n")
         (let ((end (point)))
           (push (list beg end :icon sym) gh-radar-settings--rows))))))
@@ -200,18 +227,22 @@
 (defun gh-radar-settings--insert-repos ()
   "Insert repository configuration entries."
   (let* ((repos (gh-radar-cache-get-repos))
-         (width (if (fboundp 'gh-radar-dashboard-width) (gh-radar-dashboard-width) 76)))
+         (width (if (fboundp 'gh-radar-dashboard-width)
+                    (gh-radar-dashboard-width)
+                  76)))
     (insert "  "
             (propertize (format "Configured Repositories (%d)" (length repos))
                         'face 'gh-radar-dashboard-section-header)
             "\n"
             "  "
-            (propertize (make-string width ?─) 'face 'gh-radar-dashboard-separator)
+            (propertize (make-string width ?─)
+                        'face 'gh-radar-dashboard-separator)
             "\n\n")
     (if (null repos)
         (insert "    "
-                (propertize "No repositories configured. Press 'a' to add a repository."
-                            'face 'gh-radar-dashboard-meta)
+                (propertize
+                 "No repositories configured. Press 'a' to add a repository."
+                 'face 'gh-radar-dashboard-meta)
                 "\n\n")
       (dolist (entry repos)
         (let* ((repo (car entry))
@@ -219,7 +250,8 @@
                (has-issues (member "issues" targets))
                (has-pr (member "pr" targets))
                (beg (point)))
-          (insert "    ●  " (propertize repo 'face 'gh-radar-dashboard-repo) "\n"
+          (insert "    ●  "
+                  (propertize repo 'face 'gh-radar-dashboard-repo) "\n"
                   "       [i] Issues: "
                   (if has-issues
                       (propertize "ON " 'face 'gh-radar-settings-on)
@@ -258,7 +290,8 @@
       (goto-char (point-min))
       (forward-line (1- orig-line))
       (move-to-column orig-col)
-      (when (and gh-radar-settings--rows (null (gh-radar-settings--row-at-point)))
+      (when (and gh-radar-settings--rows
+                 (null (gh-radar-settings--row-at-point)))
         (goto-char (car (car gh-radar-settings--rows))))
       (gh-radar-settings--update-highlight))))
 
@@ -268,13 +301,15 @@
    (list (read-string "Add repository to track (owner/name): ")))
   (let ((cleaned (string-trim repo-name)))
     (unless (string-match-p "^[^/ \t\n\r]+/[^/ \t\n\r]+$" cleaned)
-      (user-error "Invalid repository format '%s'. Must be 'owner/name'" cleaned))
+      (user-error
+       "Invalid repository format '%s'. Must be 'owner/name'" cleaned))
     (when (assoc cleaned (gh-radar-cache-get-repos))
       (user-error "Repository '%s' is already configured" cleaned))
     (message "[gh-radar] Verifying repository %s on GitHub..." cleaned)
     (let* ((output (with-temp-buffer
-                     (let ((code (call-process gh-radar-gh-executable nil t nil
-                                               "repo" "view" cleaned "--json" "name")))
+                     (let ((code (call-process
+                                  gh-radar-gh-executable nil t nil
+                                  "repo" "view" cleaned "--json" "name")))
                        (cons code (string-trim (buffer-string))))))
            (exit-code (car output))
            (err-msg (cdr output)))
@@ -314,7 +349,9 @@
             (gh-radar-settings-render)
             (force-mode-line-update t)
             (let* ((entry (assoc repo (gh-radar-cache-get-repos)))
-                   (state (if (member "issues" (cdr entry)) "enabled" "disabled")))
+                   (state (if (member "issues" (cdr entry))
+                              "enabled"
+                            "disabled")))
               (message "[gh-radar] %s: issues tracking %s" repo state)))
         (user-error "Move point to a repository row to toggle issues"))
     (user-error "No item at point")))
@@ -343,7 +380,8 @@
     (gh-radar-settings-render)
     (run-hook-with-args 'gh-radar-update-hook gh-radar-state-data)
     (force-mode-line-update t)
-    (message "[gh-radar] Notifications tracking %s" (if new "enabled" "disabled"))))
+    (message "[gh-radar] Notifications tracking %s"
+             (if new "enabled" "disabled"))))
 
 ;;;###autoload
 (defun gh-radar-settings-toggle-count-display ()
@@ -363,18 +401,21 @@
              (if (eq new 'only-new) "ONLY NEW (+Delta)" "ALL (Total + New)"))))
 
 ;;;###autoload
-(defalias 'gh-radar-toggle-count-display #'gh-radar-settings-toggle-count-display)
+(defalias 'gh-radar-toggle-count-display
+  #'gh-radar-settings-toggle-count-display)
 
 ;;;###autoload
 (defun gh-radar-settings-toggle-bell ()
   "Toggle mode-line aggregate bell display."
   (interactive)
-  (let* ((cur (gh-radar-cache-get-setting :bell-modeline gh-radar-bell-modeline))
+  (let* ((cur (gh-radar-cache-get-setting :bell-modeline
+                                          gh-radar-bell-modeline))
          (new (not cur)))
     (gh-radar-cache-set-setting :bell-modeline new)
     (gh-radar-settings-render)
     (force-mode-line-update t)
-    (message "[gh-radar] Modeline bell style %s" (if new "enabled" "disabled"))))
+    (message "[gh-radar] Modeline bell style %s"
+             (if new "enabled" "disabled"))))
 
 ;;;###autoload
 (defalias 'gh-radar-toggle-bell #'gh-radar-settings-toggle-bell)
@@ -383,7 +424,8 @@
 (defun gh-radar-settings-toggle-hide-zeros ()
   "Cycle zero counts hiding mode (disabled -> all -> inbox only -> disabled)."
   (interactive)
-  (let* ((cur (gh-radar-cache-get-setting :hide-zero-counts gh-radar-hide-zero-counts))
+  (let* ((cur (gh-radar-cache-get-setting :hide-zero-counts
+                                          gh-radar-hide-zero-counts))
          (new (pcase cur
                 ('nil t)
                 ('t '(inbox))
@@ -408,10 +450,14 @@
          (type (or icon-type
                    (when (and row (eq (nth 2 row) :icon)) (nth 3 row))
                    (intern (completing-read "Configure icon for: "
-                                            '("inbox" "issues" "pr" "bell" "repo")
+                                            '("inbox" "issues" "pr"
+                                              "bell" "repo")
                                             nil t))))
-         (type-sym (if (keywordp type) (intern (substring (symbol-name type) 1)) type))
-         (cur-val (cdr (or (assq type-sym (gh-radar-cache-get-setting :icons nil))
+         (type-sym (if (keywordp type)
+                       (intern (substring (symbol-name type) 1))
+                     type))
+         (cur-val (cdr (or (assq type-sym
+                                 (gh-radar-cache-get-setting :icons nil))
                            (assq type-sym gh-radar-icons)
                            '(nil . ""))))
          (candidates (when (fboundp 'nerd-icons--read-candidates)
