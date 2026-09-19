@@ -19,6 +19,38 @@
 (defvar gh-radar-process--current nil
   "Current active gh-radar repository process instance.")
 
+(defvar gh-radar--start-time nil
+  "Time when `gh-radar-mode' was enabled, used for grace period calculation.")
+
+(defvar gh-radar-process--grace-timer nil
+  "Timer for retrying fetch after a transient error during grace period.")
+
+(defun gh-radar-process--in-grace-period-p ()
+  "Return non-nil if currently within the startup grace period."
+  (and gh-radar-startup-grace-period
+       (> gh-radar-startup-grace-period 0)
+       gh-radar--start-time
+       (< (float-time (time-subtract (current-time) gh-radar--start-time))
+          gh-radar-startup-grace-period)))
+
+(defun gh-radar-process-cancel-grace-timer ()
+  "Cancel active grace period retry timer if running."
+  (when (and gh-radar-process--grace-timer
+             (timerp gh-radar-process--grace-timer))
+    (cancel-timer gh-radar-process--grace-timer)
+    (setq gh-radar-process--grace-timer nil)))
+
+(defun gh-radar-process--schedule-grace-retry ()
+  "Schedule a quiet retry after a transient error during startup."
+  (unless (and gh-radar-process--grace-timer
+               (timerp gh-radar-process--grace-timer))
+    (setq gh-radar-process--grace-timer
+          (run-with-timer 5 nil
+                          (lambda ()
+                            (setq gh-radar-process--grace-timer nil)
+                            (when (gh-radar-process--in-grace-period-p)
+                              (gh-radar-process-fetch nil t)))))))
+
 (defun gh-radar-process--extract-nodes (connection type)
   "Extract issue/PR node plists from CONNECTION hash-table for TYPE.
 TYPE is either `:issue' or `:pr'."
@@ -176,6 +208,9 @@ Calls optional CALLBACK with updated state data on completion."
                         (cancelled
                          ;; subprocess was cancelled or terminated
                          (when callback (funcall callback nil)))
+                        ((gh-radar-process--in-grace-period-p)
+                         (gh-radar-process--schedule-grace-retry)
+                         (when callback (funcall callback nil)))
                         (t
                          (let ((err-msg
                                 (when (buffer-live-p stderr-buf)
@@ -263,6 +298,9 @@ Calls optional CALLBACK with updated notification state on success."
                        (kill-buffer stderr-buf)))
                     (cancelled
                      ;; subprocess was cancelled or terminated
+                     (when callback (funcall callback nil)))
+                    ((gh-radar-process--in-grace-period-p)
+                     (gh-radar-process--schedule-grace-retry)
                      (when callback (funcall callback nil)))
                     (t
                      (let ((err-msg

@@ -26,22 +26,33 @@
 (defvar gh-radar--timer nil
   "Internal repeating timer for polling GitHub metrics.")
 
+(defvar gh-radar--idle-timer nil
+  "Internal one-shot idle timer for initial GitHub metrics fetch.")
+
+(defvar gh-radar--start-time nil
+  "Time when `gh-radar-mode' was enabled, used for grace period calculation.")
+
 (defun gh-radar-start-timer ()
   "Start or restart the periodic background fetch timer."
   (gh-radar-stop-timer)
   (when (and (or gh-radar-repos gh-radar-track-notifications)
              (> gh-radar-interval 0))
-    (run-with-idle-timer 1.5 nil #'gh-radar-process-fetch)
+    (setq gh-radar--idle-timer
+          (run-with-idle-timer 1.5 nil #'gh-radar-process-fetch))
     (setq gh-radar--timer
           (run-at-time gh-radar-interval
                        gh-radar-interval
                        #'gh-radar-process-fetch))))
 
 (defun gh-radar-stop-timer ()
-  "Cancel the active background fetch timer if running."
+  "Cancel active background fetch timers if running."
+  (when (and gh-radar--idle-timer (timerp gh-radar--idle-timer))
+    (cancel-timer gh-radar--idle-timer)
+    (setq gh-radar--idle-timer nil))
   (when (and gh-radar--timer (timerp gh-radar--timer))
     (cancel-timer gh-radar--timer)
-    (setq gh-radar--timer nil)))
+    (setq gh-radar--timer nil))
+  (gh-radar-process-cancel-grace-timer))
 
 ;;;###autoload
 (define-minor-mode gh-radar-mode
@@ -49,7 +60,10 @@
   :global t
   :group 'gh-radar
   (if gh-radar-mode
-      (gh-radar-start-timer)
+      (progn
+        (setq gh-radar--start-time (current-time))
+        (gh-radar-start-timer))
+    (setq gh-radar--start-time nil)
     (gh-radar-stop-timer)
     (gh-radar-state-clear)))
 

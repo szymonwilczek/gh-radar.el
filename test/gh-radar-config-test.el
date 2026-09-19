@@ -36,5 +36,10 @@
   (let ((gh-radar-github-host "ghe.myorg.internal"))
     (should (equal gh-radar-github-host "ghe.myorg.internal"))))
 
+(ert-deftest gh-radar-config-test-startup-grace-period ()
+  "Test default value for startup grace period."
+  (should (integerp gh-radar-startup-grace-period))
+  (should (> gh-radar-startup-grace-period 0)))
+
 (provide 'gh-radar-config-test)
 ;;; gh-radar-config-test.el ends here

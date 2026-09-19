@@ -145,5 +145,35 @@
       (when (process-live-p proc)
         (delete-process proc)))))
 
+(ert-deftest gh-radar-process-test-grace-period ()
+  "Test startup grace period checks and retry scheduling."
+  (let ((gh-radar-startup-grace-period 30)
+        (gh-radar--start-time (current-time)))
+    (should (gh-radar-process--in-grace-period-p))
+    (let ((gh-radar--start-time (time-subtract (current-time) 60)))
+      (should-not (gh-radar-process--in-grace-period-p)))
+    (let ((gh-radar-startup-grace-period 0))
+      (should-not (gh-radar-process--in-grace-period-p)))))
+
+(ert-deftest gh-radar-process-test-grace-period-suppresses-error ()
+  "Test that failures during grace period suppress error state and retry."
+  (let ((gh-radar-startup-grace-period 30)
+        (gh-radar--start-time (current-time))
+        (gh-radar-state-last-error nil)
+        (gh-radar-repos '(("test/repo" "issues")))
+        (gh-radar-gh-executable "false"))
+    (unwind-protect
+        (progn
+          (gh-radar-process-fetch-repos nil t)
+          (while (and gh-radar-process--current
+                      (process-live-p gh-radar-process--current))
+            (accept-process-output gh-radar-process--current 0.05))
+          (should-not gh-radar-state-last-error)
+          (should gh-radar-process--grace-timer))
+      (gh-radar-process-cancel-grace-timer)
+      (when (and gh-radar-process--current
+                 (process-live-p gh-radar-process--current))
+        (delete-process gh-radar-process--current)))))
+
 (provide 'gh-radar-process-test)
 ;;; gh-radar-process-test.el ends here

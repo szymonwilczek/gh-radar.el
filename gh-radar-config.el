@@ -33,6 +33,13 @@ Default is 600 seconds (10 minutes)."
   :type 'integer
   :group 'gh-radar)
 
+(defcustom gh-radar-startup-grace-period 30
+  "Duration in seconds after startup to suppress transient error indicators.
+During this grace period, connection and process errors are treated
+as transient while network connections and daemons stabilize."
+  :type 'integer
+  :group 'gh-radar)
+
 (defcustom gh-radar-gh-executable "gh"
   "Path or command name for the GitHub CLI executable."
   :type 'string
