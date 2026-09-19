@@ -105,5 +105,24 @@
         (should (eq (plist-get rec :has-more-prs) nil))
         (should (eq (plist-get rec :has-more) t))))))
 
+(ert-deftest gh-radar-process-test-cancellation-flag ()
+  "Test that tagging process with :cancelled preserves state without error."
+  (let ((gh-radar-state-last-error nil)
+        (called nil))
+    (let* ((proc (make-process
+                  :name "test-cancel"
+                  :command '("sleep" "5")
+                  :sentinel
+                  (lambda (p _e)
+                    (when (or (process-get p :cancelled)
+                              (memq (process-exit-status p) '(9 15)))
+                      (setq called t)))))
+           (gh-radar-process--current proc))
+      (process-put proc :cancelled t)
+      (delete-process proc)
+      (accept-process-output proc 0.2)
+      (should called)
+      (should-not gh-radar-state-last-error))))
+
 (provide 'gh-radar-process-test)
 ;;; gh-radar-process-test.el ends here

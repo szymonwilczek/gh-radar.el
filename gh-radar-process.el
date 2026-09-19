@@ -112,6 +112,7 @@ Returns a list of repository metric plists."
 Calls optional CALLBACK with updated state data on completion."
   (when (and gh-radar-process--current
              (process-live-p gh-radar-process--current))
+    (process-put gh-radar-process--current :cancelled t)
     (delete-process gh-radar-process--current))
   (if-let* ((built (gh-radar-query-build gh-radar-repos)))
       (let* ((default-directory (expand-file-name "~/"))
@@ -144,33 +145,42 @@ Calls optional CALLBACK with updated state data on completion."
                :sentinel
                (lambda (proc event)
                  (when (memq (process-status proc) '(exit signal))
-                   (let ((status (process-exit-status proc)))
-                     (if (zerop status)
-                         (with-current-buffer (process-buffer proc)
-                           (let* ((output (buffer-string))
-                                  (records
-                                   (gh-radar-process--parse-response
-                                    output alias-map)))
-                             (when records
-                               (gh-radar-state-clear-error)
-                               (gh-radar-state-update records))
-                             (when callback
-                               (funcall callback gh-radar-state-data))))
-                       (let ((err-msg (when (buffer-live-p stderr-buf)
-                                        (with-current-buffer stderr-buf
-                                          (string-trim (buffer-string))))))
+                   (let* ((status (process-exit-status proc))
+                          (cancelled (or (process-get proc :cancelled)
+                                         (memq status '(9 15)))))
+                     (cond
+                      ((zerop status)
+                       (with-current-buffer (process-buffer proc)
+                         (let* ((output (buffer-string))
+                                (records
+                                 (gh-radar-process--parse-response
+                                  output alias-map)))
+                           (when records
+                             (gh-radar-state-clear-error)
+                             (gh-radar-state-update records))
+                           (when callback
+                             (funcall callback gh-radar-state-data))))
+                       (when (buffer-live-p (process-buffer proc))
+                         (kill-buffer (process-buffer proc)))
+                       (when (buffer-live-p stderr-buf)
+                         (kill-buffer stderr-buf)))
+                      (cancelled
+                       ;; subprocess was cancelled or terminated intentionally
+                       (when callback (funcall callback nil)))
+                      (t
+                       (let ((err-msg
+                              (when (buffer-live-p stderr-buf)
+                                (with-current-buffer stderr-buf
+                                  (string-trim (buffer-string))))))
                          (gh-radar-state-set-error
                           (or (and err-msg (not (string-empty-p err-msg))
                                    err-msg)
                               (format "gh api failed (code %d)" status)))
-                         (message "[gh-radar] gh api failed (code %d): %s %s"
-                                  status (string-trim event) (or err-msg "")))
+                         (message
+                          "[gh-radar] gh api failed (code %d): %s %s"
+                          status (string-trim event) (or err-msg "")))
                        (when callback (funcall callback nil))))
-                   (when (buffer-live-p (process-buffer proc))
-                     (kill-buffer (process-buffer proc)))
-                   (when (buffer-live-p stderr-buf)
-                     (kill-buffer stderr-buf))
-                   (setq gh-radar-process--current nil))))))
+                     (setq gh-radar-process--current nil)))))))
     (when callback (funcall callback nil))))
 
 (defun gh-radar-process-fetch (&optional callback)
@@ -198,6 +208,7 @@ Calls optional CALLBACK with state data when all fetches complete."
 Calls optional CALLBACK with updated notification state on success."
   (when (and gh-radar-process--notifications
              (process-live-p gh-radar-process--notifications))
+    (process-put gh-radar-process--notifications :cancelled t)
     (delete-process gh-radar-process--notifications))
   (let* ((default-directory (expand-file-name "~/"))
          (stdout-buf (generate-new-buffer " *gh-radar-notifications*"))
@@ -226,25 +237,37 @@ Calls optional CALLBACK with updated notification state on success."
            :sentinel
            (lambda (proc event)
              (when (memq (process-status proc) '(exit signal))
-               (let ((status (process-exit-status proc)))
-                 (if (zerop status)
-                     (with-current-buffer (process-buffer proc)
-                       (let* ((raw (buffer-string))
-                              (items
-                               (condition-case _
-                                   (if (fboundp 'json-parse-string)
-                                       (json-parse-string
-                                        raw :array-type 'list)
-                                     (let ((json-array-type 'list))
-                                       (json-read-from-string raw)))
-                                 (error nil)))
-                              (count (if (listp items) (length items) 0)))
-                         (gh-radar-state-update-notifications count items)
-                         (when callback
-                           (funcall callback gh-radar-state-notifications))))
-                   (let ((err-msg (when (buffer-live-p stderr-buf)
-                                    (with-current-buffer stderr-buf
-                                      (string-trim (buffer-string))))))
+               (let* ((status (process-exit-status proc))
+                      (cancelled (or (process-get proc :cancelled)
+                                     (memq status '(9 15)))))
+                 (cond
+                  ((zerop status)
+                   (with-current-buffer (process-buffer proc)
+                     (let* ((raw (buffer-string))
+                            (items
+                             (condition-case _
+                                 (if (fboundp 'json-parse-string)
+                                     (json-parse-string
+                                      raw :array-type 'list)
+                                   (let ((json-array-type 'list))
+                                     (json-read-from-string raw)))
+                               (error nil)))
+                            (count (if (listp items) (length items) 0)))
+                       (gh-radar-state-update-notifications count items)
+                       (when callback
+                         (funcall callback gh-radar-state-notifications))))
+                   (when (buffer-live-p (process-buffer proc))
+                     (kill-buffer (process-buffer proc)))
+                   (when (buffer-live-p stderr-buf)
+                     (kill-buffer stderr-buf)))
+                  (cancelled
+                   ;; subprocess was cancelled or terminated intentionally
+                   (when callback (funcall callback nil)))
+                  (t
+                   (let ((err-msg
+                          (when (buffer-live-p stderr-buf)
+                            (with-current-buffer stderr-buf
+                              (string-trim (buffer-string))))))
                      (gh-radar-state-set-error
                       (or (and err-msg (not (string-empty-p err-msg))
                                err-msg)
@@ -254,11 +277,7 @@ Calls optional CALLBACK with updated notification state on success."
                       "[gh-radar] notifications fetch failed (code %d): %s %s"
                       status (string-trim event) (or err-msg "")))
                    (when callback (funcall callback nil))))
-               (when (buffer-live-p (process-buffer proc))
-                 (kill-buffer (process-buffer proc)))
-               (when (buffer-live-p stderr-buf)
-                 (kill-buffer stderr-buf))
-               (setq gh-radar-process--notifications nil)))))))
+                 (setq gh-radar-process--notifications nil))))))))
 
 (provide 'gh-radar-process)
 ;;; gh-radar-process.el ends here
