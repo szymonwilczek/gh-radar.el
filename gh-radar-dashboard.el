@@ -523,9 +523,10 @@ ITEM is of the form ((REPO . PLIST))."
     (when win (set-window-point win (point)))
     (gh-radar-dashboard--update-highlight)))
 
-(defun gh-radar-dashboard-refresh-buffer ()
-  "Trigger asynchronous radar query and re-render dashboard."
-  (interactive)
+(defun gh-radar-dashboard-refresh-buffer (&optional force)
+  "Trigger asynchronous radar query and re-render dashboard.
+If FORCE is non-nil, force-refresh active requests."
+  (interactive (list t))
   (message "[gh-radar] Refreshing...")
   (gh-radar-process-fetch
    (lambda (_data)
@@ -533,7 +534,8 @@ ITEM is of the form ((REPO . PLIST))."
        (when (buffer-live-p buf)
          (with-current-buffer buf
            (gh-radar-dashboard-render))))
-     (message "[gh-radar] Refresh complete."))))
+     (message "[gh-radar] Refresh complete."))
+   (or force (called-interactively-p 'interactive))))
 
 (defun gh-radar-dashboard-help ()
   "Display a popup side window listing dashboard key bindings."

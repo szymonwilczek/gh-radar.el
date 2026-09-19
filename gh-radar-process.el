@@ -107,84 +107,182 @@ Returns a list of repository metric plists."
      (message "[gh-radar] Failed to parse API response: %s" err)
      nil)))
 
-(defun gh-radar-process-fetch-repos (&optional callback)
+(defun gh-radar-process-fetch-repos (&optional callback force)
   "Trigger asynchronous GraphQL fetch for `gh-radar-repos'.
+If FORCE is non-nil, cancel active subprocess before fetching.
+Otherwise, if a query is already running, skip starting a redundant one.
 Calls optional CALLBACK with updated state data on completion."
-  (when (and gh-radar-process--current
-             (process-live-p gh-radar-process--current))
-    (process-put gh-radar-process--current :cancelled t)
-    (delete-process gh-radar-process--current))
-  (if-let* ((built (gh-radar-query-build gh-radar-repos)))
-      (let* ((default-directory (expand-file-name "~/"))
-             (query-str (car built))
-             (alias-map (cdr built))
-             (stdout-buf (generate-new-buffer " *gh-radar-output*"))
-             (stderr-buf (generate-new-buffer " *gh-radar-stderr*"))
-             (host-args (when (and gh-radar-github-host
-                                   (not (string-empty-p gh-radar-github-host))
-                                   (not (equal gh-radar-github-host
-                                               "github.com")))
-                          (list "--hostname" gh-radar-github-host)))
-             (cmd (append (list gh-radar-gh-executable "api")
-                          host-args
-                          (list "graphql"
-                                "-f" (concat "query=" query-str))))
-             (process-environment
-              (append (list "NO_COLOR=1" "CLICOLOR=0"
-                            (format "GH_HOST=%s"
-                                    (or gh-radar-github-host "github.com")))
-                      process-environment)))
-        (setq gh-radar-process--current
-              (make-process
-               :name "gh-radar"
-               :buffer stdout-buf
-               :stderr stderr-buf
-               :connection-type 'pipe
-               :command cmd
-               :noquery t
-               :sentinel
-               (lambda (proc event)
-                 (when (memq (process-status proc) '(exit signal))
-                   (let* ((status (process-exit-status proc))
-                          (cancelled (or (process-get proc :cancelled)
-                                         (memq status '(9 15)))))
-                     (cond
-                      ((zerop status)
-                       (with-current-buffer (process-buffer proc)
-                         (let* ((output (buffer-string))
-                                (records
-                                 (gh-radar-process--parse-response
-                                  output alias-map)))
-                           (when records
-                             (gh-radar-state-clear-error)
-                             (gh-radar-state-update records))
-                           (when callback
-                             (funcall callback gh-radar-state-data))))
-                       (when (buffer-live-p (process-buffer proc))
-                         (kill-buffer (process-buffer proc)))
-                       (when (buffer-live-p stderr-buf)
-                         (kill-buffer stderr-buf)))
-                      (cancelled
-                       ;; subprocess was cancelled or terminated intentionally
-                       (when callback (funcall callback nil)))
-                      (t
-                       (let ((err-msg
-                              (when (buffer-live-p stderr-buf)
-                                (with-current-buffer stderr-buf
-                                  (string-trim (buffer-string))))))
-                         (gh-radar-state-set-error
-                          (or (and err-msg (not (string-empty-p err-msg))
-                                   err-msg)
-                              (format "gh api failed (code %d)" status)))
-                         (message
-                          "[gh-radar] gh api failed (code %d): %s %s"
-                          status (string-trim event) (or err-msg "")))
-                       (when callback (funcall callback nil))))
-                     (setq gh-radar-process--current nil)))))))
-    (when callback (funcall callback nil))))
+  (if (and gh-radar-process--current
+           (process-live-p gh-radar-process--current))
+      (if force
+          (progn
+            (process-put gh-radar-process--current :cancelled t)
+            (delete-process gh-radar-process--current))
+        (when callback (funcall callback gh-radar-state-data)))
+    nil)
+  (unless (and gh-radar-process--current
+               (process-live-p gh-radar-process--current))
+    (if-let* ((built (gh-radar-query-build gh-radar-repos)))
+        (let* ((default-directory (expand-file-name "~/"))
+               (query-str (car built))
+               (alias-map (cdr built))
+               (stdout-buf (generate-new-buffer " *gh-radar-output*"))
+               (stderr-buf (generate-new-buffer " *gh-radar-stderr*"))
+               (host-args (when (and gh-radar-github-host
+                                     (not (string-empty-p
+                                           gh-radar-github-host))
+                                     (not (equal gh-radar-github-host
+                                                 "github.com")))
+                            (list "--hostname" gh-radar-github-host)))
+               (cmd (append (list gh-radar-gh-executable "api")
+                            host-args
+                            (list "graphql"
+                                  "-f" (concat "query=" query-str))))
+               (process-environment
+                (append (list "NO_COLOR=1" "CLICOLOR=0"
+                              (format "GH_HOST=%s"
+                                      (or gh-radar-github-host "github.com")))
+                        process-environment)))
+          (setq gh-radar-process--current
+                (make-process
+                 :name "gh-radar"
+                 :buffer stdout-buf
+                 :stderr stderr-buf
+                 :connection-type 'pipe
+                 :command cmd
+                 :noquery t
+                 :sentinel
+                 (lambda (proc event)
+                   (when (memq (process-status proc) '(exit signal))
+                     (let* ((status (process-exit-status proc))
+                            (cancelled (or (process-get proc :cancelled)
+                                           (memq status '(9 15)))))
+                       (cond
+                        ((zerop status)
+                         (with-current-buffer (process-buffer proc)
+                           (let* ((output (buffer-string))
+                                  (records
+                                   (gh-radar-process--parse-response
+                                    output alias-map)))
+                             (when records
+                               (gh-radar-state-clear-error)
+                               (gh-radar-state-update records))
+                             (when callback
+                               (funcall callback gh-radar-state-data))))
+                         (when (buffer-live-p (process-buffer proc))
+                           (kill-buffer (process-buffer proc)))
+                         (when (buffer-live-p stderr-buf)
+                           (kill-buffer stderr-buf)))
+                        (cancelled
+                         ;; subprocess was cancelled or terminated
+                         (when callback (funcall callback nil)))
+                        (t
+                         (let ((err-msg
+                                (when (buffer-live-p stderr-buf)
+                                  (with-current-buffer stderr-buf
+                                    (string-trim (buffer-string))))))
+                           (gh-radar-state-set-error
+                            (or (and err-msg (not (string-empty-p err-msg))
+                                     err-msg)
+                                (format "gh api failed (code %d)" status)))
+                           (message
+                            "[gh-radar] gh api failed (code %d): %s %s"
+                            status (string-trim event) (or err-msg "")))
+                         (when callback (funcall callback nil))))
+                       (setq gh-radar-process--current nil)))))))
+      (when callback (funcall callback nil)))))
 
-(defun gh-radar-process-fetch (&optional callback)
+(defvar gh-radar-process--notifications nil
+  "Current active gh-radar notifications process instance.")
+
+(defun gh-radar-process-fetch-notifications (&optional callback force)
+  "Trigger asynchronous fetch for GitHub unread notifications.
+If FORCE is non-nil, cancel active subprocess before fetching.
+Otherwise, if a fetch is already running, skip starting a redundant one.
+Calls optional CALLBACK with updated notification state on success."
+  (if (and gh-radar-process--notifications
+           (process-live-p gh-radar-process--notifications))
+      (if force
+          (progn
+            (process-put gh-radar-process--notifications :cancelled t)
+            (delete-process gh-radar-process--notifications))
+        (when callback
+          (funcall callback gh-radar-state-notifications)))
+    nil)
+  (unless (and gh-radar-process--notifications
+               (process-live-p gh-radar-process--notifications))
+    (let* ((default-directory (expand-file-name "~/"))
+           (stdout-buf (generate-new-buffer " *gh-radar-notifications*"))
+           (stderr-buf (generate-new-buffer " *gh-radar-notifications-err*"))
+           (host-args (when (and gh-radar-github-host
+                                 (not (string-empty-p gh-radar-github-host))
+                                 (not (equal gh-radar-github-host
+                                             "github.com")))
+                        (list "--hostname" gh-radar-github-host)))
+           (cmd (append (list gh-radar-gh-executable "api")
+                        host-args
+                        (list "notifications")))
+           (process-environment
+            (append (list "NO_COLOR=1" "CLICOLOR=0"
+                          (format "GH_HOST=%s"
+                                  (or gh-radar-github-host "github.com")))
+                    process-environment)))
+      (setq gh-radar-process--notifications
+            (make-process
+             :name "gh-radar-notifications"
+             :buffer stdout-buf
+             :stderr stderr-buf
+             :connection-type 'pipe
+             :command cmd
+             :noquery t
+             :sentinel
+             (lambda (proc event)
+               (when (memq (process-status proc) '(exit signal))
+                 (let* ((status (process-exit-status proc))
+                        (cancelled (or (process-get proc :cancelled)
+                                       (memq status '(9 15)))))
+                   (cond
+                    ((zerop status)
+                     (with-current-buffer (process-buffer proc)
+                       (let* ((raw (buffer-string))
+                              (items
+                               (condition-case _
+                                   (if (fboundp 'json-parse-string)
+                                       (json-parse-string
+                                        raw :array-type 'list)
+                                     (let ((json-array-type 'list))
+                                       (json-read-from-string raw)))
+                                 (error nil)))
+                              (count (if (listp items) (length items) 0)))
+                         (gh-radar-state-update-notifications count items)
+                         (when callback
+                           (funcall callback gh-radar-state-notifications))))
+                     (when (buffer-live-p (process-buffer proc))
+                       (kill-buffer (process-buffer proc)))
+                     (when (buffer-live-p stderr-buf)
+                       (kill-buffer stderr-buf)))
+                    (cancelled
+                     ;; subprocess was cancelled or terminated
+                     (when callback (funcall callback nil)))
+                    (t
+                     (let ((err-msg
+                            (when (buffer-live-p stderr-buf)
+                              (with-current-buffer stderr-buf
+                                (string-trim (buffer-string))))))
+                       (gh-radar-state-set-error
+                        (or (and err-msg (not (string-empty-p err-msg))
+                                 err-msg)
+                            (format "notifications fetch failed (code %d)"
+                                    status)))
+                       (message
+                        "[gh-radar] notifications fetch failed (code %d): %s %s"
+                        status (string-trim event) (or err-msg "")))
+                     (when callback (funcall callback nil))))
+                   (setq gh-radar-process--notifications nil)))))))))
+
+(defun gh-radar-process-fetch (&optional callback force)
   "Trigger asynchronous fetch for repository metrics and notifications.
+If FORCE is non-nil, cancel active subprocesses and fetch anew.
 Calls optional CALLBACK with state data when all fetches complete."
   (let* ((pending 0)
          (on-complete (lambda (&rest _)
@@ -193,91 +291,12 @@ Calls optional CALLBACK with state data when all fetches complete."
                           (funcall callback gh-radar-state-data)))))
     (when gh-radar-track-notifications
       (setq pending (1+ pending))
-      (gh-radar-process-fetch-notifications on-complete))
+      (gh-radar-process-fetch-notifications on-complete force))
     (when gh-radar-repos
       (setq pending (1+ pending))
-      (gh-radar-process-fetch-repos on-complete))
+      (gh-radar-process-fetch-repos on-complete force))
     (when (and (zerop pending) callback)
       (funcall callback gh-radar-state-data))))
-
-(defvar gh-radar-process--notifications nil
-  "Current active gh-radar notifications process instance.")
-
-(defun gh-radar-process-fetch-notifications (&optional callback)
-  "Trigger asynchronous fetch for GitHub unread notifications.
-Calls optional CALLBACK with updated notification state on success."
-  (when (and gh-radar-process--notifications
-             (process-live-p gh-radar-process--notifications))
-    (process-put gh-radar-process--notifications :cancelled t)
-    (delete-process gh-radar-process--notifications))
-  (let* ((default-directory (expand-file-name "~/"))
-         (stdout-buf (generate-new-buffer " *gh-radar-notifications*"))
-         (stderr-buf (generate-new-buffer " *gh-radar-notifications-err*"))
-         (host-args (when (and gh-radar-github-host
-                               (not (string-empty-p gh-radar-github-host))
-                               (not (equal gh-radar-github-host
-                                           "github.com")))
-                      (list "--hostname" gh-radar-github-host)))
-         (cmd (append (list gh-radar-gh-executable "api")
-                      host-args
-                      (list "notifications")))
-         (process-environment
-          (append (list "NO_COLOR=1" "CLICOLOR=0"
-                        (format "GH_HOST=%s"
-                                (or gh-radar-github-host "github.com")))
-                  process-environment)))
-    (setq gh-radar-process--notifications
-          (make-process
-           :name "gh-radar-notifications"
-           :buffer stdout-buf
-           :stderr stderr-buf
-           :connection-type 'pipe
-           :command cmd
-           :noquery t
-           :sentinel
-           (lambda (proc event)
-             (when (memq (process-status proc) '(exit signal))
-               (let* ((status (process-exit-status proc))
-                      (cancelled (or (process-get proc :cancelled)
-                                     (memq status '(9 15)))))
-                 (cond
-                  ((zerop status)
-                   (with-current-buffer (process-buffer proc)
-                     (let* ((raw (buffer-string))
-                            (items
-                             (condition-case _
-                                 (if (fboundp 'json-parse-string)
-                                     (json-parse-string
-                                      raw :array-type 'list)
-                                   (let ((json-array-type 'list))
-                                     (json-read-from-string raw)))
-                               (error nil)))
-                            (count (if (listp items) (length items) 0)))
-                       (gh-radar-state-update-notifications count items)
-                       (when callback
-                         (funcall callback gh-radar-state-notifications))))
-                   (when (buffer-live-p (process-buffer proc))
-                     (kill-buffer (process-buffer proc)))
-                   (when (buffer-live-p stderr-buf)
-                     (kill-buffer stderr-buf)))
-                  (cancelled
-                   ;; subprocess was cancelled or terminated intentionally
-                   (when callback (funcall callback nil)))
-                  (t
-                   (let ((err-msg
-                          (when (buffer-live-p stderr-buf)
-                            (with-current-buffer stderr-buf
-                              (string-trim (buffer-string))))))
-                     (gh-radar-state-set-error
-                      (or (and err-msg (not (string-empty-p err-msg))
-                               err-msg)
-                          (format "notifications fetch failed (code %d)"
-                                  status)))
-                     (message
-                      "[gh-radar] notifications fetch failed (code %d): %s %s"
-                      status (string-trim event) (or err-msg "")))
-                   (when callback (funcall callback nil))))
-                 (setq gh-radar-process--notifications nil))))))))
 
 (provide 'gh-radar-process)
 ;;; gh-radar-process.el ends here

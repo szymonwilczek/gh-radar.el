@@ -354,7 +354,7 @@
       (gh-radar-cache-add-repo cleaned '("issues" "pr"))
       (gh-radar-settings-render)
       (message "[gh-radar] Added %s (issues & PRs enabled)" cleaned)
-      (gh-radar-process-fetch))))
+      (gh-radar-process-fetch nil t))))
 
 (defun gh-radar-settings-delete-repo ()
   "Remove the repository at point from radar tracking."

@@ -124,5 +124,26 @@
       (should called)
       (should-not gh-radar-state-last-error))))
 
+(ert-deftest gh-radar-process-test-inflight-coalescing ()
+  "Test that in-flight process is not deleted without force flag."
+  (let* ((proc (make-process
+                :name "test-inflight"
+                :command '("sleep" "5")))
+         (gh-radar-process--current proc)
+         (callback-called nil))
+    (unwind-protect
+        (progn
+          ;; calling without force should not delete proc
+          (gh-radar-process-fetch-repos
+           (lambda (_) (setq callback-called t))
+           nil)
+          (should (process-live-p proc))
+          (should callback-called)
+          ;; calling with force should kill proc
+          (gh-radar-process-fetch-repos nil t)
+          (should (process-get proc :cancelled)))
+      (when (process-live-p proc)
+        (delete-process proc)))))
+
 (provide 'gh-radar-process-test)
 ;;; gh-radar-process-test.el ends here

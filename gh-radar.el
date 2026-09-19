@@ -60,7 +60,8 @@
   (message "[gh-radar] Refreshing monitored repositories...")
   (gh-radar-process-fetch
    (lambda (_data)
-     (message "[gh-radar] Refresh complete."))))
+     (message "[gh-radar] Refresh complete."))
+   t))
 
 ;;;###autoload
 (defun gh-radar-browse ()
