@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2026 Szymon Wilczek
 ;; Author: Szymon Wilczek <swilczek.lx@gmail.com>
-;; Version: 0.1.2
+;; Version: 0.1.4
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: tools, vc, github
 ;; URL: https://github.com/szymonwilczek/gh-radar.el
