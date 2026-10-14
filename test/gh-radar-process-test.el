@@ -155,6 +155,15 @@
     (let ((gh-radar-startup-grace-period 0))
       (should-not (gh-radar-process--in-grace-period-p)))))
 
+(ert-deftest gh-radar-process-test-grace-period-explicit-time ()
+  "Test grace period check against an explicit reference time."
+  (let* ((gh-radar-startup-grace-period 30)
+         (start (time-subtract (current-time) 60))
+         (gh-radar--start-time start))
+    (should-not (gh-radar-process--in-grace-period-p))
+    (should (gh-radar-process--in-grace-period-p (time-add start 5)))
+    (should-not (gh-radar-process--in-grace-period-p (time-add start 31)))))
+
 (ert-deftest gh-radar-process-test-grace-period-suppresses-error ()
   "Test that failures during grace period suppress error state and retry."
   (let ((gh-radar-startup-grace-period 30)

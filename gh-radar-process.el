@@ -25,12 +25,14 @@
 (defvar gh-radar-process--grace-timer nil
   "Timer for retrying fetch after a transient error during grace period.")
 
-(defun gh-radar-process--in-grace-period-p ()
-  "Return non-nil if currently within the startup grace period."
+(defun gh-radar-process--in-grace-period-p (&optional time)
+  "Return non-nil if TIME falls within the startup grace period.
+TIME defaults to the current time."
   (and gh-radar-startup-grace-period
        (> gh-radar-startup-grace-period 0)
        gh-radar--start-time
-       (< (float-time (time-subtract (current-time) gh-radar--start-time))
+       (< (float-time (time-subtract (or time (current-time))
+                                     gh-radar--start-time))
           gh-radar-startup-grace-period)))
 
 (defun gh-radar-process-cancel-grace-timer ()
