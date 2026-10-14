@@ -667,9 +667,9 @@ If FORCE is non-nil, force-refresh active requests."
   "Open the interactive gh-radar dashboard buffer."
   (interactive)
   (let* ((buf (get-buffer-create "*gh-radar*"))
-         (orig-conf (unless (or (eq (current-buffer) buf)
-                                (memq gh-radar-dashboard-display-style
-                                      '(same-window pop-to-buffer)))
+         (orig-conf (when (and (eq gh-radar-dashboard-display-style
+                                   'full-window)
+                               (not (eq (current-buffer) buf)))
                       (current-window-configuration))))
     (with-current-buffer buf
       (unless (derived-mode-p 'gh-radar-dashboard-mode)
@@ -686,7 +686,6 @@ If FORCE is non-nil, force-refresh active requests."
       ('pop-to-buffer
        (pop-to-buffer buf))
       (_
-       (delete-other-windows)
        (switch-to-buffer buf)))))
 
 (defun gh-radar-dashboard--auto-refresh-buffer (&rest _)
