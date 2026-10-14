@@ -85,5 +85,19 @@
       (when (buffer-live-p buf)
         (kill-buffer buf)))))
 
+(ert-deftest gh-radar-dashboard-test-quit-kills-buffer ()
+  "Test that quitting the dashboard kills its buffer."
+  (let ((gh-radar-state-data nil)
+        (gh-radar-track-notifications nil)
+        (gh-radar-state-last-error nil))
+    (unwind-protect
+        (progn
+          (gh-radar-dashboard)
+          (with-current-buffer "*gh-radar*"
+            (gh-radar-dashboard-quit))
+          (should-not (get-buffer "*gh-radar*")))
+      (when (get-buffer "*gh-radar*")
+        (kill-buffer "*gh-radar*")))))
+
 (provide 'gh-radar-dashboard-test)
 ;;; gh-radar-dashboard-test.el ends here

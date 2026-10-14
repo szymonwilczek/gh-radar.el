@@ -651,7 +651,7 @@ If FORCE is non-nil, force-refresh active requests."
   "Saved window configuration prior to opening dashboard fullscreen.")
 
 (defun gh-radar-dashboard-quit ()
-  "Quit the dashboard window and restore previous layout."
+  "Kill the dashboard buffer and restore previous layout."
   (interactive)
   (let ((conf gh-radar-dashboard--prev-win-conf)
         (buf (current-buffer)))
@@ -659,7 +659,7 @@ If FORCE is non-nil, force-refresh active requests."
         (progn
           (set-window-configuration conf)
           (when (buffer-live-p buf)
-            (bury-buffer buf)))
+            (kill-buffer buf)))
       (quit-window t))))
 
 ;;;###autoload
