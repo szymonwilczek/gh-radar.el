@@ -106,5 +106,32 @@
     (when (get-buffer "*gh-radar settings*")
       (kill-buffer "*gh-radar settings*"))))
 
+(ert-deftest gh-radar-settings-test-quit-returns-to-dashboard ()
+  "Test that quitting same-window settings returns to the dashboard."
+  (let ((gh-radar-state-data nil)
+        (gh-radar-track-notifications nil)
+        (gh-radar-state-last-error nil)
+        (gh-radar-dashboard-display-style 'same-window)
+        (other-buf (get-buffer-create "*gh-radar-test-other*"))
+        (orig-conf (current-window-configuration)))
+    (unwind-protect
+        (progn
+          (delete-other-windows)
+          (let ((other-win (split-window)))
+            (gh-radar-dashboard)
+            (gh-radar-settings)
+            (set-window-buffer other-win other-buf)
+            (with-current-buffer "*gh-radar settings*"
+              (gh-radar-settings-quit))
+            (should (eq (window-buffer (selected-window))
+                        (get-buffer "*gh-radar*")))
+            (should (eq (window-buffer other-win) other-buf))
+            (should-not (get-buffer "*gh-radar settings*"))))
+      (set-window-configuration orig-conf)
+      (kill-buffer other-buf)
+      (dolist (name '("*gh-radar*" "*gh-radar settings*"))
+        (when (get-buffer name)
+          (kill-buffer name))))))
+
 (provide 'gh-radar-settings-test)
 ;;; gh-radar-settings-test.el ends here

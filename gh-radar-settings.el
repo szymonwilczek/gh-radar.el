@@ -719,7 +719,10 @@
   "Open the interactive gh-radar settings buffer."
   (interactive)
   (let* ((buf (get-buffer-create "*gh-radar settings*"))
-         (orig-conf (unless (eq (current-buffer) buf)
+         (orig-conf (unless (or (eq (current-buffer) buf)
+                                (memq (bound-and-true-p
+                                       gh-radar-dashboard-display-style)
+                                      '(same-window pop-to-buffer)))
                       (current-window-configuration))))
     (with-current-buffer buf
       (unless (derived-mode-p 'gh-radar-settings-mode)
