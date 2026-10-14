@@ -95,5 +95,16 @@
     (when (buffer-live-p buf)
       (kill-buffer buf))))
 
+(ert-deftest gh-radar-settings-test-quit-kills-buffer ()
+  "Test that quitting settings kills its buffer."
+  (unwind-protect
+      (progn
+        (gh-radar-settings)
+        (with-current-buffer "*gh-radar settings*"
+          (gh-radar-settings-quit))
+        (should-not (get-buffer "*gh-radar settings*")))
+    (when (get-buffer "*gh-radar settings*")
+      (kill-buffer "*gh-radar settings*"))))
+
 (provide 'gh-radar-settings-test)
 ;;; gh-radar-settings-test.el ends here

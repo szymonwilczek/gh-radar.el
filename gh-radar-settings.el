@@ -566,7 +566,7 @@
     (gh-radar-settings-add-repo (read-string "Add repository (owner/name): "))))
 
 (defun gh-radar-settings-quit ()
-  "Close settings buffer and return to dashboard."
+  "Kill settings buffer and return to dashboard."
   (interactive)
   (let ((conf gh-radar-settings--prev-win-conf)
         (buf (current-buffer)))
@@ -579,7 +579,7 @@
         (progn
           (set-window-configuration conf)
           (when (buffer-live-p buf)
-            (bury-buffer buf)))
+            (kill-buffer buf)))
       (quit-window t))
     (message "[gh-radar] Settings saved.")))
 
