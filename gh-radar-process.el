@@ -50,7 +50,7 @@ TIME defaults to the current time."
           (run-with-timer 5 nil
                           (lambda ()
                             (setq gh-radar-process--grace-timer nil)
-                            (when (gh-radar-process--in-grace-period-p)
+                            (when gh-radar--start-time
                               (gh-radar-process-fetch nil t)))))))
 
 (defun gh-radar-process--extract-nodes (connection type)

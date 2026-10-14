@@ -184,6 +184,22 @@
                  (process-live-p gh-radar-process--current))
         (delete-process gh-radar-process--current)))))
 
+(ert-deftest gh-radar-process-test-grace-retry-after-expiry ()
+  "Test that a scheduled grace retry still fires once grace expired."
+  (let ((gh-radar-startup-grace-period 30)
+        (gh-radar--start-time (time-subtract (current-time) 60))
+        (gh-radar-process--grace-timer nil)
+        (fetched nil))
+    (cl-letf (((symbol-function 'gh-radar-process-fetch)
+               (lambda (&rest _) (setq fetched t))))
+      (unwind-protect
+          (progn
+            (gh-radar-process--schedule-grace-retry)
+            (timer-event-handler gh-radar-process--grace-timer)
+            (should fetched)
+            (should-not gh-radar-process--grace-timer))
+        (gh-radar-process-cancel-grace-timer)))))
+
 (ert-deftest gh-radar-process-test-grace-period-uses-spawn-time ()
   "Test that a failure is judged by when the subprocess was spawned.
 A request started inside the grace period that only fails after it
