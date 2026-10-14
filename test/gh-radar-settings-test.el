@@ -133,5 +133,21 @@
         (when (get-buffer name)
           (kill-buffer name))))))
 
+(ert-deftest gh-radar-settings-test-unknown-style-keeps-splits ()
+  "Test that an unknown display style opens settings in place."
+  (let ((gh-radar-dashboard-display-style 'bogus)
+        (orig-conf (current-window-configuration)))
+    (unwind-protect
+        (progn
+          (delete-other-windows)
+          (split-window)
+          (gh-radar-settings)
+          (should (= (length (window-list)) 2))
+          (should (eq (window-buffer (selected-window))
+                      (get-buffer "*gh-radar settings*"))))
+      (set-window-configuration orig-conf)
+      (when (get-buffer "*gh-radar settings*")
+        (kill-buffer "*gh-radar settings*")))))
+
 (provide 'gh-radar-settings-test)
 ;;; gh-radar-settings-test.el ends here
