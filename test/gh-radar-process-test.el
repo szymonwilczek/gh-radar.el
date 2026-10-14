@@ -175,5 +175,22 @@
                  (process-live-p gh-radar-process--current))
         (delete-process gh-radar-process--current)))))
 
+(ert-deftest gh-radar-process-test-notifications-success-clears-error ()
+  "Test that a successful notifications fetch clears stale error state."
+  (let ((gh-radar-state-last-error "dial tcp: i/o timeout")
+        (gh-radar-state-notifications nil)
+        (gh-radar-gh-executable "true"))
+    (unwind-protect
+        (progn
+          (gh-radar-process-fetch-notifications nil t)
+          (while (and gh-radar-process--notifications
+                      (process-live-p gh-radar-process--notifications))
+            (accept-process-output gh-radar-process--notifications 0.05))
+          (accept-process-output nil 0.05)
+          (should-not gh-radar-state-last-error))
+      (when (and gh-radar-process--notifications
+                 (process-live-p gh-radar-process--notifications))
+        (delete-process gh-radar-process--notifications)))))
+
 (provide 'gh-radar-process-test)
 ;;; gh-radar-process-test.el ends here
