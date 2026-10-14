@@ -115,7 +115,7 @@ Asynchronous GitHub radar for GNU Emacs. Tracks open issues, pull requests, and 
     (gh-radar-show-prefix nil)                             ;; Hide GitHub icon prefix
 
     ;; UI display style
-    (gh-radar-dashboard-display-style 'full-window)        ;; 'full-window, 'same-window, or 'pop-to-buffer
+    (gh-radar-dashboard-display-style 'same-window)        ;; 'same-window (keeps splits), 'full-window, or 'pop-to-buffer
     :config
     (gh-radar-mode 1))
 #+end_src
@@ -142,11 +142,11 @@ If your mode-line does not automatically evaluate minor mode segments, add ~gh-r
 | ~gh-radar-desktop-notification-backend~ | ~nil~                      | System notification backend: ~'notifications~, ~'notify-send~, or ~nil~. |
 
 *** Dashboard and Interface
-| Variable                         | Default      | Description                                                             |
-|----------------------------------+--------------+-------------------------------------------------------------------------|
-| ~gh-radar-dashboard-display-style~ | ~'full-window~ | Display mode: ~'full-window~ (maximize), ~'same-window~, or ~'pop-to-buffer~. |
-| ~gh-radar-dashboard-max-width~     | ~100~          | Maximum column width of the dashboard layout.                           |
-| ~gh-radar-count-display~           | ~'all~         | Count mode: ~'all~ (total + delta) or ~'only-new~ (+delta only).            |
+| Variable                         | Default      | Description                                                                            |
+|----------------------------------+--------------+----------------------------------------------------------------------------------------|
+| ~gh-radar-dashboard-display-style~ | ~'same-window~ | Display mode: ~'same-window~ (keeps splits), ~'full-window~ (maximize), or ~'pop-to-buffer~. |
+| ~gh-radar-dashboard-max-width~     | ~100~          | Maximum column width of the dashboard layout.                                          |
+| ~gh-radar-count-display~           | ~'all~         | Count mode: ~'all~ (total + delta) or ~'only-new~ (+delta only).                           |
 
 *** Mode-line Presentation
 | Variable                     | Default                 | Description                                                   |
