@@ -303,7 +303,8 @@ Calls optional CALLBACK with updated notification state on success."
                     (cancelled
                      ;; subprocess was cancelled or terminated
                      (when callback (funcall callback nil)))
-                    ((gh-radar-process--in-grace-period-p)
+                    ((gh-radar-process--in-grace-period-p
+                      (process-get proc :started))
                      (gh-radar-process--schedule-grace-retry)
                      (when callback (funcall callback nil)))
                     (t
@@ -320,7 +321,9 @@ Calls optional CALLBACK with updated notification state on success."
                         "[gh-radar] notifications fetch failed (code %d): %s %s"
                         status (string-trim event) (or err-msg "")))
                      (when callback (funcall callback nil))))
-                   (setq gh-radar-process--notifications nil)))))))))
+                   (setq gh-radar-process--notifications nil))))))
+      (process-put gh-radar-process--notifications
+                   :started (current-time)))))
 
 (defun gh-radar-process-fetch (&optional callback force)
   "Trigger asynchronous fetch for repository metrics and notifications.
