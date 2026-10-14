@@ -99,5 +99,33 @@
       (when (get-buffer "*gh-radar*")
         (kill-buffer "*gh-radar*")))))
 
+(ert-deftest gh-radar-dashboard-test-quit-keeps-other-windows ()
+  "Test that quitting a same-window dashboard leaves other splits alone."
+  (let ((gh-radar-state-data nil)
+        (gh-radar-track-notifications nil)
+        (gh-radar-state-last-error nil)
+        (gh-radar-dashboard-display-style 'same-window)
+        (other-buf (get-buffer-create "*gh-radar-test-other*"))
+        (orig-conf (current-window-configuration)))
+    (unwind-protect
+        (progn
+          (delete-other-windows)
+          (switch-to-buffer "*scratch*")
+          (let ((other-win (split-window)))
+            (gh-radar-dashboard)
+            (should (eq (window-buffer (selected-window))
+                        (get-buffer "*gh-radar*")))
+            (should (window-live-p other-win))
+            (set-window-buffer other-win other-buf)
+            (with-current-buffer "*gh-radar*"
+              (gh-radar-dashboard-quit))
+            (should (window-live-p other-win))
+            (should (eq (window-buffer other-win) other-buf))
+            (should-not (get-buffer "*gh-radar*"))))
+      (set-window-configuration orig-conf)
+      (kill-buffer other-buf)
+      (when (get-buffer "*gh-radar*")
+        (kill-buffer "*gh-radar*")))))
+
 (provide 'gh-radar-dashboard-test)
 ;;; gh-radar-dashboard-test.el ends here
