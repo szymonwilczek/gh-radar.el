@@ -184,6 +184,35 @@
                  (process-live-p gh-radar-process--current))
         (delete-process gh-radar-process--current)))))
 
+(ert-deftest gh-radar-process-test-grace-period-uses-spawn-time ()
+  "Test that a failure is judged by when the subprocess was spawned.
+A request started inside the grace period that only fails after it
+expired, e.g. on a 30s dial timeout, must still be treated as
+transient."
+  (let ((gh-radar-startup-grace-period 30)
+        (gh-radar--start-time (current-time))
+        (gh-radar-state-last-error nil)
+        (gh-radar-repos '(("test/repo" "issues")))
+        (gh-radar-gh-executable "false"))
+    (unwind-protect
+        (progn
+          (gh-radar-process-fetch-repos nil t)
+          (should (process-get gh-radar-process--current :started))
+          ;; pretend grace period expired while the request was in flight
+          (setq gh-radar--start-time (time-subtract (current-time) 40))
+          (process-put gh-radar-process--current :started
+                       (time-subtract (current-time) 20))
+          (let ((proc gh-radar-process--current))
+            (while (process-live-p proc)
+              (accept-process-output proc 0.05))
+            (accept-process-output nil 0.05))
+          (should-not gh-radar-state-last-error)
+          (should gh-radar-process--grace-timer))
+      (gh-radar-process-cancel-grace-timer)
+      (when (and gh-radar-process--current
+                 (process-live-p gh-radar-process--current))
+        (delete-process gh-radar-process--current)))))
+
 (ert-deftest gh-radar-process-test-notifications-success-clears-error ()
   "Test that a successful notifications fetch clears stale error state."
   (let ((gh-radar-state-last-error "dial tcp: i/o timeout")

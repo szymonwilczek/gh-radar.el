@@ -210,7 +210,8 @@ Calls optional CALLBACK with updated state data on completion."
                         (cancelled
                          ;; subprocess was cancelled or terminated
                          (when callback (funcall callback nil)))
-                        ((gh-radar-process--in-grace-period-p)
+                        ((gh-radar-process--in-grace-period-p
+                          (process-get proc :started))
                          (gh-radar-process--schedule-grace-retry)
                          (when callback (funcall callback nil)))
                         (t
@@ -226,7 +227,8 @@ Calls optional CALLBACK with updated state data on completion."
                             "[gh-radar] gh api failed (code %d): %s %s"
                             status (string-trim event) (or err-msg "")))
                          (when callback (funcall callback nil))))
-                       (setq gh-radar-process--current nil)))))))
+                       (setq gh-radar-process--current nil))))))
+          (process-put gh-radar-process--current :started (current-time)))
       (when callback (funcall callback nil)))))
 
 (defvar gh-radar-process--notifications nil
