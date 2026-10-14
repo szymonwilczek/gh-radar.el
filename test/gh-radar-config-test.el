@@ -41,5 +41,10 @@
   (should (integerp gh-radar-startup-grace-period))
   (should (> gh-radar-startup-grace-period 0)))
 
+(ert-deftest gh-radar-config-test-dashboard-display-style ()
+  "Test that the dashboard opens in the current window by default."
+  (should (eq (default-value 'gh-radar-dashboard-display-style)
+              'same-window)))
+
 (provide 'gh-radar-config-test)
 ;;; gh-radar-config-test.el ends here

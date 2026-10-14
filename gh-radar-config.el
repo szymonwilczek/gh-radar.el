@@ -179,14 +179,15 @@ Defaults to `all'."
                  (const :tag "Only new counts (unread delta)" only-new))
   :group 'gh-radar)
 
-(defcustom gh-radar-dashboard-display-style 'full-window
+(defcustom gh-radar-dashboard-display-style 'same-window
   "Display style for opening the interactive dashboard buffer.
 Supported values:
-  `full-window'  - Open fullscreen in active frame and maximize (default).
-  `same-window'  - Open in current window as a buffer tab.
+  `same-window'  - Open in current window as a buffer tab, keeping
+                   any existing window splits (default).
+  `full-window'  - Open fullscreen in active frame and maximize.
   `pop-to-buffer' - Use standard Emacs `pop-to-buffer'."
-  :type '(choice (const :tag "Full window (maximize)" full-window)
-                 (const :tag "Same window" same-window)
+  :type '(choice (const :tag "Same window" same-window)
+                 (const :tag "Full window (maximize)" full-window)
                  (const :tag "Pop to buffer" pop-to-buffer))
   :group 'gh-radar)
 
